@@ -1,0 +1,9 @@
+{
+  "hairline_left": [350, 130], "hairline_center": [480, 150], "hairline_right": [760, 130],
+  "brow_left_inner": [475, 290], "brow_left_outer": [625, 265],
+  "eye_left_inner": [470, 355], "eye_left_outer": [618, 328],
+  "nose_tip": [320, 520],
+  "mouth_left": [295, 590], "mouth_center": [330, 600], "mouth_right": [372, 592],
+  "chin_tip": [360, 665], "chin_left": [318, 638], "chin_right": [425, 638],
+  "ear_top": [880, 40], "ear_bottom": [845, 280]
+}

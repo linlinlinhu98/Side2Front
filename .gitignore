@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+*.pyd
+
+# 构建产物 / 本地缓存
+build/
+huggingface_cache/
+*.log
+
+# 第三方仓库单独 clone（自带 .git，不随本仓库分发）
+3ddfa_v2/
+.vscode/
+
+# 离线调参产物（不随仓库分发）
+assets/geom/

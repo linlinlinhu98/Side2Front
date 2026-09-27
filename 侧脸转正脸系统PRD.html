@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>侧脸转正脸图像编辑系统 PRD v2.0</title>
+<style>
+:root {
+  --bg: #f5f5f5;
+  --surface: #ffffff;
+  --primary: #333333;
+  --secondary: #666666;
+  --tertiary: #999999;
+  --border: #dcdcdc;
+  --border-light: #e8e8e8;
+  --accent: #4a4a4a;
+  --code-bg: #f0f0f0;
+  --tag-bg: #ececec;
+  --shadow: 0 1px 4px rgba(0,0,0,0.06);
+  --shadow-md: 0 2px 12px rgba(0,0,0,0.08);
+  --radius: 6px;
+  --mode-real: #4a6a8a;
+  --mode-anime: #8a6a4a;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+  background: var(--bg);
+  color: var(--primary);
+  line-height: 1.7;
+  font-size: 14px;
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 40px 32px 80px;
+}
+
+/* Header */
+.doc-header {
+  background: var(--surface);
+  border-bottom: 3px solid var(--primary);
+  padding: 32px;
+  border-radius: var(--radius) var(--radius) 0 0;
+  box-shadow: var(--shadow);
+}
+
+.doc-header h1 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.doc-header .subtitle {
+  margin-top: 8px;
+  color: var(--secondary);
+  font-size: 14px;
+}
+
+.meta-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
+}
+
+.meta-item {
+  font-size: 13px;
+  color: var(--tertiary);
+}
+
+.meta-item span {
+  color: var(--secondary);
+  font-weight: 600;
+}
+
+/* Section */
+.section {
+  background: var(--surface);
+  margin-top: 12px;
+  padding: 28px 32px;
+  box-shadow: var(--shadow);
+  border-radius: var(--radius);
+}
+
+.section h2 {
+  font-size: 19px;
+  font-weight: 700;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 24px 0 12px;
+  padding-left: 10px;
+  border-left: 3px solid var(--primary);
+}
+
+.section h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--secondary);
+  margin: 16px 0 8px;
+}
+
+.section p {
+  margin-bottom: 12px;
+  color: #444;
+}
+
+.tag {
+  display: inline-block;
+  background: var(--tag-bg);
+  color: var(--secondary);
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  margin-left: 6px;
+}
+
+/* Table */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0 20px;
+  font-size: 13px;
+}
+
+table th {
+  background: #f7f7f7;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  font-weight: 600;
+  color: var(--secondary);
+}
+
+table td {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  color: #444;
+}
+
+table tr:nth-child(even) td {
+  background: #fafafa;
+}
+
+/* Prototype Demo */
+.proto-wrapper {
+  margin: 16px 0 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.proto-title-bar {
+  background: #f0f0f0;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--tertiary);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.proto-title-bar .dots {
+  display: flex;
+  gap: 5px;
+}
+
+.proto-title-bar .dots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ddd;
+}
+
+.proto-body {
+  padding: 20px;
+}
+
+/* GUI Prototype - main layout */
+.gui-mock {
+  display: grid;
+  grid-template-columns: 1fr 1fr 260px;
+  gap: 12px;
+  height: 420px;
+  background: #ededed;
+  padding: 12px;
+  border-radius: 4px;
+}
+
+.gui-panel {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.gui-panel-header {
+  background: #e8e8e8;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #666;
+  border-bottom: 1px solid #ddd;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gui-panel-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Image placeholder */
+.img-placeholder {
+  width: 80%;
+  height: 80%;
+  background: linear-gradient(135deg, #e0e0e0, #f5f5f5);
+  border: 2px dashed #bbb;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #aaa;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.img-placeholder:hover {
+  border-color: #888;
+}
+
+.img-placeholder .icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+  opacity: 0.5;
+}
+
+.img-placeholder.loaded {
+  border: 2px solid #ccc;
+  background: linear-gradient(135deg, #d4d4d4, #e8e8e8);
+}
+
+.face-silhouette {
+  width: 120px;
+  height: 150px;
+  position: relative;
+}
+
+.face-silhouette svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Mode switcher */
+.mode-switch {
+  display: flex;
+  gap: 0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 8px 4px;
+  border: none;
+  background: #f5f5f5;
+  font-size: 12px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-right: 1px solid #ccc;
+}
+
+.mode-btn:last-child { border-right: none; }
+
+.mode-btn.active {
+  background: #444;
+  color: #fff;
+}
+
+/* Control panel */
+.ctrl-group {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.ctrl-group:last-child {
+  border-bottom: none;
+}
+
+.ctrl-group-title {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.ctrl-btn {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  border-radius: 3px;
+  font-size: 12px;
+  color: #444;
+  cursor: pointer;
+  margin-bottom: 6px;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.ctrl-btn:hover {
+  background: #e8e8e8;
+}
+
+.ctrl-btn.primary {
+  background: #444;
+  color: #fff;
+  border-color: #333;
+}
+
+.ctrl-btn.primary:hover {
+  background: #555;
+}
+
+.ctrl-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.slider-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+}
+
+.slider-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.slider-label .val {
+  font-weight: 600;
+  color: #333;
+}
+
+.slider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  background: #ddd;
+  border-radius: 2px;
+  outline: none;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #555;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* Annotation */
+.anno {
+  position: absolute;
+  background: #333;
+  color: #fff;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  z-index: 10;
+}
+
+/* Code block */
+.code-block {
+  background: var(--code-bg);
+  border-radius: 4px;
+  padding: 14px 16px;
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  overflow-x: auto;
+  margin: 12px 0;
+  color: #333;
+}
+
+/* Callout */
+.callout {
+  background: #f7f7f7;
+  border-left: 3px solid #999;
+  padding: 12px 16px;
+  margin: 12px 0;
+  border-radius: 0 4px 4px 0;
+  font-size: 13px;
+  color: #555;
+}
+
+.callout-real {
+  background: #f0f4f8;
+  border-left: 3px solid var(--mode-real);
+}
+
+.callout-anime {
+  background: #f8f4f0;
+  border-left: 3px solid var(--mode-anime);
+}
+
+/* Badge */
+.badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badge-must { background: #e8e8e8; color: #333; }
+.badge-should { background: #f0f0f0; color: #666; }
+.badge-real { background: #e8edf2; color: var(--mode-real); }
+.badge-anime { background: #f2ece8; color: var(--mode-anime); }
+
+/* Flow diagram */
+.flow-diagram {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+  padding: 16px;
+  background: #fafafa;
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+}
+
+.flow-node {
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 8px 14px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #444;
+  white-space: nowrap;
+}
+
+.flow-node.real { border-color: var(--mode-real); color: var(--mode-real); }
+.flow-node.anime { border-color: var(--mode-anime); color: var(--mode-anime); }
+
+.flow-arrow {
+  color: #999;
+  font-size: 14px;
+}
+
+/* Dual-column for mode comparison */
+.dual-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 12px 0 20px;
+}
+
+.dual-col-item {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dual-col-header {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.dual-col-header.real { background: #e8edf2; color: var(--mode-real); }
+.dual-col-header.anime { background: #f2ece8; color: var(--mode-anime); }
+
+.dual-col-body {
+  padding: 14px;
+  font-size: 12.5px;
+  color: #444;
+}
+
+.dual-col-body table { margin: 0; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .gui-mock {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .gui-panel { min-height: 180px; }
+  .dual-col { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<!-- Header -->
+<div class="doc-header">
+  <h1>侧脸转正脸图像编辑系统 PRD</h1>
+  <div class="subtitle">Side-to-Frontal Face Editing System — 东南大学竞赛测试4 · 双模式（真实人脸 + 动漫人脸）</div>
+  <div class="meta-bar">
+    <div class="meta-item">版本 <span>v2.0</span></div>
+    <div class="meta-item">日期 <span>2026-09-09</span></div>
+    <div class="meta-item">技术栈 <span>Python + 3DDFA_V2 + OpenCV + PySide6</span></div>
+    <div class="meta-item">运行环境 <span>CPU 离线</span></div>
+    <div class="meta-item">测试图来源 <span>test/4/face.png (动漫) + 真实人脸</span></div>
+  </div>
+</div>
+
+<!-- 1. 需求背景 -->
+<div class="section">
+  <h2>1 需求背景</h2>
+
+  <p>东南大学王洪松老师的 OpenCV-Python-Image-Processing 课程仓库中，test/4 目录上传了两张测试用图：<strong>face.png</strong>（动漫风格90度纯侧脸肖像）和 <strong>cat.jpg</strong>（虎斑猫3/4侧面照片）。竞赛测试4要求实现"侧脸转正脸"图像编辑功能：读取侧脸图像，通过交互操作将侧脸转为正脸，在GUI界面同时展示原图与转换结果，全程CPU离线运行。<span class="tag">竞赛驱动</span></p>
+
+  <p>核心约束：全程CPU下离线运行，不得调用GPU或连接远程服务器。评分上，基本功能（图像加载、交互转换、GUI三区域布局）占60分；效果质量占40分，完成全部功能后按总运行耗时排序评分。</p>
+
+  <div class="callout">
+    <p><strong>双模式设计的必要性：</strong>课程仓库提供的 face.png 是动漫插画风格侧脸，而非真实人脸照片。真实人脸检测器（RetinaFace）和3DMM回归模型（3DDFA_V2）均在真实人脸数据上训练，无法有效检测和回归动漫人脸的3D参数。因此系统需同时支持两种技术路线：</p>
+    <ul style="margin-left:20px;margin-top:8px;color:#555">
+      <li><strong>真实人脸模式</strong>：3DDFA_V2 全自动管线 — 人脸检测 → 3DMM参数回归 → 姿态旋转 → 纹理渲染</li>
+      <li><strong>动漫人脸模式</strong>：OpenCV 交互式管线 — 手动标注关键点 → 薄板样条(TPS)变形 → 对称镜像补全 → 泊松融合</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 2. 需求目标 -->
+<div class="section">
+  <h2>2 需求目标</h2>
+
+  <table>
+    <tr>
+      <th style="width:25%">目标维度</th>
+      <th>具体描述</th>
+    </tr>
+    <tr>
+      <td>双模式支持</td>
+      <td>系统提供"真实人脸"和"动漫人脸"两种处理模式，用户可在加载图像前或后切换模式。真实人脸模式全自动处理；动漫人脸模式支持手动关键点标注+半自动变形</td>
+    </tr>
+    <tr>
+      <td>功能完整性</td>
+      <td>两种模式均实现：侧脸图像加载、正脸转换、参数交互调整、结果对比与导出，GUI三区域布局符合任务书要求</td>
+    </tr>
+    <tr>
+      <td>转换效果</td>
+      <td>真实人脸：3D重建生成的正脸自然、身份一致；动漫人脸：对称镜像+TPS变形生成的正脸线条连贯、风格统一</td>
+    </tr>
+    <tr>
+      <td>运行性能</td>
+      <td>真实人脸模式：首次转换<1s；动漫人脸模式：首次转换<2s（含用户标注时间另计）；参数调整增量渲染<300ms</td>
+    </tr>
+    <tr>
+      <td>交互体验</td>
+      <td>两种模式下用户均可反复调整参数并实时预览，直到满意后导出</td>
+    </tr>
+  </table>
+</div>
+
+<!-- 3. 功能需求详情 -->
+<div class="section">
+  <h2>3 功能需求详情</h2>
+
+  <p>系统采用三栏式GUI布局：左栏显示原图像，中栏显示转换结果，右栏为交互操作控制面板。右栏顶部为模式切换器，切换后控制面板内容自适应变化。以下按功能模块逐一描述。</p>
+
+  <!-- 3.1 整体界面布局 -->
+  <h3>3.1 整体界面布局与模式切换</h3>
+
+  <div class="proto-wrapper">
+    <div class="proto-title-bar">
+      <div class="dots"><span></span><span></span><span></span></div>
+      <span>侧脸转正脸系统 — 主界面原型（双模式）</span>
+      <span style="opacity:0">.</span>
+    </div>
+    <div class="proto-body">
+      <div class="gui-mock" id="gui-main">
+        <!-- Original Image Panel -->
+        <div class="gui-panel">
+          <div class="gui-panel-header">
+            <span>原图像</span>
+            <span style="font-weight:400;font-size:11px" id="orig-info">未加载</span>
+          </div>
+          <div class="gui-panel-content" id="orig-panel">
+            <div class="img-placeholder" id="orig-placeholder" onclick="loadMockImage()">
+              <div class="icon">+</div>
+              <span>点击或拖入侧脸图像</span>
+              <span style="font-size:11px;margin-top:4px;color:#bbb">支持 JPG / PNG / BMP</span>
+            </div>
+            <div class="anno" style="top:6px;left:6px">1</div>
+          </div>
+        </div>
+
+        <!-- Result Image Panel -->
+        <div class="gui-panel">
+          <div class="gui-panel-header">
+            <span>转换结果</span>
+            <span style="font-weight:400;font-size:11px" id="result-info">等待转换</span>
+          </div>
+          <div class="gui-panel-content" id="result-panel">
+            <div class="img-placeholder">
+              <div class="icon">○</div>
+              <span>转换结果将在此显示</span>
+            </div>
+            <div class="anno" style="top:6px;left:6px">2</div>
+          </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="gui-panel" style="background:#fafafa">
+          <div class="gui-panel-header">
+            <span>交互操作</span>
+            <span style="font-weight:400;font-size:11px;color:#aaa">控制面板</span>
+          </div>
+          <div class="gui-panel-content" style="display:block;overflow-y:auto;padding:0">
+            <!-- Mode Switcher -->
+            <div class="ctrl-group">
+              <div class="ctrl-group-title">处理模式</div>
+              <div class="mode-switch">
+                <button class="mode-btn active" id="mode-real-btn" onclick="switchMode('real')">真实人脸</button>
+                <button class="mode-btn" id="mode-anime-btn" onclick="switchMode('anime')">动漫人脸</button>
+              </div>
+            </div>
+
+            <!-- File Group -->
+            <div class="ctrl-group">
+              <div class="ctrl-group-title">文件操作</div>
+              <button class="ctrl-btn primary" onclick="loadMockImage()" id="btn-load">① 加载图像</button>
+              <button class="ctrl-btn" disabled id="btn-convert">② 开始转换</button>
+              <button class="ctrl-btn" disabled id="btn-export">③ 导出结果</button>
+            </div>
+
+            <!-- Real Mode Controls (shown by default) -->
+            <div id="real-controls">
+              <div class="ctrl-group">
+                <div class="ctrl-group-title">旋转参数（3DMM）</div>
+                <div class="slider-row">
+                  <div class="slider-label"><span>Yaw（左右转）</span><span class="val" id="yaw-val">0°</span></div>
+                  <input type="range" class="slider" min="-90" max="90" value="0" id="yaw-slider" oninput="updateYaw(this.value)">
+                </div>
+                <div class="slider-row">
+                  <div class="slider-label"><span>Pitch（俯仰）</span><span class="val" id="pitch-val">0°</span></div>
+                  <input type="range" class="slider" min="-30" max="30" value="0" id="pitch-slider" oninput="updatePitch(this.value)">
+                </div>
+                <div class="slider-row">
+                  <div class="slider-label"><span>Roll（歪头）</span><span class="val" id="roll-val">0°</span></div>
+                  <input type="range" class="slider" min="-30" max="30" value="0" id="roll-slider" oninput="updateRoll(this.value)">
+                </div>
+                <button class="ctrl-btn" onclick="resetAngles()" style="margin-top:4px">重置角度</button>
+              </div>
+              <div class="ctrl-group">
+                <div class="ctrl-group-title">渲染选项</div>
+                <button class="ctrl-btn" id="btn-texture">纹理补全: 开启</button>
+                <button class="ctrl-btn" id="btn-smooth">边界平滑: 开启</button>
+              </div>
+            </div>
+
+            <!-- Anime Mode Controls (hidden by default) -->
+            <div id="anime-controls" style="display:none">
+              <div class="ctrl-group">
+                <div class="ctrl-group-title">关键点标注</div>
+                <button class="ctrl-btn" id="btn-annotate">手动标注关键点</button>
+                <button class="ctrl-btn" id="btn-auto-annotate">半自动检测轮廓</button>
+                <button class="ctrl-btn" id="btn-clear-points">清除所有标注</button>
+              </div>
+              <div class="ctrl-group">
+                <div class="ctrl-group-title">变形参数</div>
+                <div class="slider-row">
+                  <div class="slider-label"><span>镜像强度</span><span class="val" id="mirror-val">80%</span></div>
+                  <input type="range" class="slider" min="0" max="100" value="80" id="mirror-slider" oninput="updateMirror(this.value)">
+                </div>
+                <div class="slider-row">
+                  <div class="slider-label"><span>TPS柔性度</span><span class="val" id="tps-val">50%</span></div>
+                  <input type="range" class="slider" min="0" max="100" value="50" id="tps-slider" oninput="updateTps(this.value)">
+                </div>
+                <button class="ctrl-btn" onclick="resetAnimeParams()" style="margin-top:4px">重置参数</button>
+              </div>
+              <div class="ctrl-group">
+                <div class="ctrl-group-title">融合选项</div>
+                <button class="ctrl-btn" id="btn-poisson">泊松融合: 开启</button>
+                <button class="ctrl-btn" id="btn-color-match">色调匹配: 开启</button>
+              </div>
+            </div>
+
+            <!-- Common Controls -->
+            <div class="ctrl-group">
+              <div class="ctrl-group-title">显示</div>
+              <button class="ctrl-btn" id="btn-compare">对比模式: 关闭</button>
+            </div>
+
+            <div class="anno" style="top:6px;right:6px">3</div>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#999;margin-top:8px;text-align:center">标注 ① 原图区域 &nbsp; ② 结果区域 &nbsp; ③ 交互操作区域 — 点击"真实人脸/动漫人脸"切换模式，点击"加载图像"查看动态效果</p>
+    </div>
+  </div>
+
+  <h4>页面布局说明</h4>
+  <table>
+    <tr>
+      <th style="width:20%">区域</th>
+      <th style="width:30%">职责</th>
+      <th>布局细节</th>
+    </tr>
+    <tr>
+      <td>原图显示区（左）</td>
+      <td>展示原图，支持缩放；动漫模式下支持鼠标点击标注关键点</td>
+      <td>占界面宽度的约38%，顶部显示文件名和尺寸信息。动漫模式下叠加关键点标记层</td>
+    </tr>
+    <tr>
+      <td>结果显示区（中）</td>
+      <td>展示转换后的正脸图像，支持前后对比</td>
+      <td>占界面宽度的约38%，与原图等比例显示，顶部显示转换耗时</td>
+    </tr>
+    <tr>
+      <td>交互操作区（右）</td>
+      <td>模式切换 + 文件操作 + 模式专属参数 + 显示选项</td>
+      <td>占界面宽度的约24%，顶部为模式切换器，下方控件随模式动态切换</td>
+    </tr>
+  </table>
+</div>
+
+<!-- 3.2 双模式处理流程对比 -->
+<div class="section">
+  <h3>3.2 双模式处理流程对比</h3>
+
+  <div class="dual-col">
+    <div class="dual-col-item">
+      <div class="dual-col-header real">真实人脸模式（全自动3D管线）</div>
+      <div class="dual-col-body">
+        <div class="flow-diagram" style="margin:0;padding:12px">
+          <div class="flow-node real">人脸检测<br>RetinaFace</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node real">关键点<br>68点检测</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node real">3DMM<br>参数回归</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node real">姿态旋转<br>至正面</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node real">Sim3DR<br>纹理渲染</div>
+        </div>
+        <p style="margin-top:10px">用户仅需加载图像并点击转换，全过程自动完成。适合真实人脸照片，3DDFA_V2预训练模型在CPU上推理约1.35ms/图。</p>
+      </div>
+    </div>
+    <div class="dual-col-item">
+      <div class="dual-col-header anime">动漫人脸模式（交互式2D管线）</div>
+      <div class="dual-col-body">
+        <div class="flow-diagram" style="margin:0;padding:12px">
+          <div class="flow-node anime">加载图像</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node anime">手动/半自动<br>标注关键点</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node anime">TPS<br>薄板样条变形</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node anime">对称镜像<br>补全另半脸</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-node anime">泊松融合<br>色调匹配</div>
+        </div>
+        <p style="margin-top:10px">用户需手动在原图上标注面部关键点（或使用边缘检测半自动提取轮廓），系统通过TPS变形将侧脸warp为正脸视角，再镜像可见半脸补全另半脸。</p>
+      </div>
+    </div>
+  </div>
+
+  <p>两种模式共享同一套GUI框架和文件操作流程，仅在"转换"环节的技术路线不同。用户可随时切换模式重新处理当前图像。</p>
+</div>
+
+<!-- 3.3 真实人脸模式 -->
+<div class="section">
+  <h3>3.3 真实人脸模式：3DMM全自动管线</h3>
+
+  <table>
+    <tr>
+      <th style="width:20%">阶段</th>
+      <th style="width:15%">耗时（CPU）</th>
+      <th>处理逻辑</th>
+    </tr>
+    <tr>
+      <td>人脸检测</td>
+      <td>~20-30ms</td>
+      <td>使用3DDFA_V2内置的RetinaFace-ONNX模型检测人脸边界框。支持多脸场景，默认选取面积最大者。在原图上以边框标注人脸位置。</td>
+    </tr>
+    <tr>
+      <td>关键点+3DMM回归</td>
+      <td>~1.5ms</td>
+      <td>将检测到的人脸区域送入3DDFA_V2回归网络，输出68个关键点坐标和257维3DMM参数向量（含身份、表情、姿态），同时计算相机外参矩阵。</td>
+    </tr>
+    <tr>
+      <td>姿态旋转至正面</td>
+      <td>~5ms</td>
+      <td>根据回归得到的yaw/pitch/roll参数，计算旋转矩阵R，将3DMM顶点云从当前姿态旋转至正面朝向（yaw=0, pitch=0, roll=0）。旋转后顶点云保留原始纹理坐标。</td>
+    </tr>
+    <tr>
+      <td>纹理映射与补全</td>
+      <td>~30-80ms</td>
+      <td>使用Sim3DR渲染器对旋转后的3DMM光栅化，从原图采样颜色填充正面可见区域。对侧脸遮挡区域，采用对称镜像补全：将可见侧纹理镜像至不可见侧，再做边界融合。</td>
+    </tr>
+    <tr>
+      <td>边界平滑</td>
+      <td>~10ms</td>
+      <td>对镜像补全区域与原始纹理区域的边界做泊松融合消除接缝，全图施加轻度双边滤波。</td>
+    </tr>
+  </table>
+
+  <div class="callout callout-real">
+    真实人脸模式的关键优势：3DDFA_V2在CPU上3DMM参数回归仅约1.35ms/图，配合内置的Sim3DR渲染模块可直接输出正面视角，无需训练模型、无需GPU、无需联网。所有权重随仓库分发。但该模型在真实人脸数据上训练，对动漫/插画风格人脸的检测和回归效果不可靠。
+  </div>
+</div>
+
+<!-- 3.4 动漫人脸模式 -->
+<div class="section">
+  <h3>3.4 动漫人脸模式：交互式TPS变形管线</h3>
+
+  <p>动漫人脸模式针对非真实人脸图像（如test/4/face.png的动漫侧脸），采用OpenCV图像变换 + 交互式关键点标注的技术路线。该路线不依赖任何深度学习模型，完全基于经典计算机视觉算法，天然适合CPU离线运行。</p>
+
+  <table>
+    <tr>
+      <th style="width:20%">阶段</th>
+      <th style="width:15%">耗时（CPU）</th>
+      <th>处理逻辑</th>
+    </tr>
+    <tr>
+      <td>关键点标注</td>
+      <td>用户交互</td>
+      <td>用户在原图上点击标注面部关键点，至少需要标注以下特征点：发际线中心、眉峰、眼角（内外眦）、鼻尖、鼻翼、嘴角（上下唇）、下巴尖、耳廓上下端。系统提供默认模板点位引导，用户点击对应位置即可。也支持半自动模式：使用Canny边缘检测+形态学操作提取面部轮廓，用户在检测到的轮廓上选择关键点。</td>
+    </tr>
+    <tr>
+      <td>构建正面模板</td>
+      <td>~5ms</td>
+      <td>根据标注的关键点，系统自动生成对称的正面关键点模板。以面部中线为对称轴，将可见侧的关键点镜像至不可见侧，生成正面视角的完整关键点集。中线的确定方式：取发际线中心、鼻尖、下巴尖三点拟合直线作为初始中线，用户可微调。</td>
+    </tr>
+    <tr>
+      <td>TPS薄板样条变形</td>
+      <td>~50-100ms</td>
+      <td>使用薄板样条插值将原始侧脸图像warp到正面关键点位置。TPS是一种径向基函数插值方法，给定源点和目标点后，能生成平滑的二维映射场。对每个像素计算其在原图中的采样位置，使用双线性插值采样颜色。TPS柔性度参数控制变形的平滑程度：值越大变形越柔和，值越小平移越精确。</td>
+    </tr>
+    <tr>
+      <td>对称镜像补全</td>
+      <td>~20ms</td>
+      <td>TPS变形后，原侧脸的可见半脸已映射到正面视角的对应侧。对于另一侧（原遮挡区域），将可见侧图像以面部中线为轴做水平翻转，覆盖到不可见侧。镜像强度参数控制翻转图像的透明度叠加比例：100%为完全镜像覆盖，0%为不补全（保留灰色空洞）。</td>
+    </tr>
+    <tr>
+      <td>泊松融合与色调匹配</td>
+      <td>~30-50ms</td>
+      <td>对镜像区域与原始区域的边界使用OpenCV泊松融合（cv2.seamlessClone）消除可见接缝。若原图有明显色调倾向（如动漫侧脸为黑白灰单色调），先对镜像区域做直方图匹配使其色调与可见侧一致，再做融合。关闭色调匹配时可能出现左右半脸明暗不一致。</td>
+    </tr>
+  </table>
+
+  <h4>关键点标注交互</h4>
+  <table>
+    <tr>
+      <th style="width:20%">标注方式</th>
+      <th style="width:15%">优先级</th>
+      <th>描述</th>
+    </tr>
+    <tr>
+      <td>引导式手动标注</td>
+      <td><span class="badge badge-must">必须</span></td>
+      <td>系统在原图上以半透明圆点显示关键点的预期位置模板（约15-20个点），用户依次点击每个点确认位置。已标注的点以蓝色实心圆显示，未标注的以灰色空心圆引导。支持撤销上一个点（右键或Ctrl+Z）。</td>
+    </tr>
+    <tr>
+      <td>半自动轮廓检测</td>
+      <td><span class="badge badge-should">建议</span></td>
+      <td>点击"半自动检测轮廓"后，系统使用Canny边缘检测+形态学闭运算提取面部外轮廓曲线，用户在轮廓上点击选择关键点位置。适合边缘清晰的动漫图像。</td>
+    </tr>
+    <tr>
+      <td>关键点微调</td>
+      <td><span class="badge badge-must">必须</span></td>
+      <td>所有关键点标注完成后，用户可拖拽任意点进行微调，系统实时重新计算TPS变形并在结果区域预览。</td>
+    </tr>
+    <tr>
+      <td>对称轴调整</td>
+      <td><span class="badge badge-should">建议</span></td>
+      <td>用户可拖拽对称轴两端微调面部中线角度，影响镜像补全和正面模板生成的对称基准。</td>
+    </tr>
+  </table>
+
+  <div class="callout callout-anime">
+    动漫人脸模式的核心优势：完全基于OpenCV经典算法（TPS、泊松融合、边缘检测），不依赖任何深度学习模型，天然适合CPU离线。对动漫/插画风格图像效果稳定，因为不依赖人脸检测器的泛化能力。缺点是需要用户手动标注关键点，首次转换耗时包含交互时间。test/4/face.png的动漫侧脸轮廓清晰、边缘分明，非常适合Canny边缘检测和TPS变形处理。
+  </div>
+</div>
+
+<!-- 3.5 交互参数调整 -->
+<div class="section">
+  <h3>3.5 交互参数调整（双模式共用）</h3>
+
+  <p>用户首次转换后，可通过右侧控制面板的滑块和按钮反复调整参数。两种模式下的参数集不同，但交互方式一致：每次调整触发增量渲染，在结果区域实时更新预览。</p>
+
+  <h4>真实人脸模式参数</h4>
+  <table>
+    <tr>
+      <th style="width:18%">控件</th>
+      <th style="width:15%">类型</th>
+      <th style="width:15%">范围/默认</th>
+      <th>交互逻辑</th>
+    </tr>
+    <tr>
+      <td>Yaw滑块</td>
+      <td>Range Slider</td>
+      <td>-90° ~ 90°，默认0°</td>
+      <td>改变目标偏航角。0°为正面，正值右转，负值左转。系统根据3DMM参数和滑块值重新计算旋转矩阵并渲染。拖动时低分辨率实时预览，释放后全分辨率渲染。</td>
+    </tr>
+    <tr>
+      <td>Pitch滑块</td>
+      <td>Range Slider</td>
+      <td>-30° ~ 30°，默认0°</td>
+      <td>控制俯仰角度。正值抬头，负值低头。与Yaw联动计算组合旋转矩阵。</td>
+    </tr>
+    <tr>
+      <td>Roll滑块</td>
+      <td>Range Slider</td>
+      <td>-30° ~ 30°，默认0°</td>
+      <td>控制头部倾斜。正值右倾，负值左倾。用于微调正面姿态。</td>
+    </tr>
+    <tr>
+      <td>纹理补全</td>
+      <td>Toggle</td>
+      <td>默认开启</td>
+      <td>开启时遮挡区域做镜像补全+边界融合。关闭时仅显示原始可见纹理，遮挡区灰色填充。</td>
+    </tr>
+    <tr>
+      <td>边界平滑</td>
+      <td>Toggle</td>
+      <td>默认开启</td>
+      <td>开启时施加双边滤波和边界羽化。关闭时输出原始光栅化结果。</td>
+    </tr>
+  </table>
+
+  <h4>动漫人脸模式参数</h4>
+  <table>
+    <tr>
+      <th style="width:18%">控件</th>
+      <th style="width:15%">类型</th>
+      <th style="width:15%">范围/默认</th>
+      <th>交互逻辑</th>
+    </tr>
+    <tr>
+      <td>镜像强度</td>
+      <td>Range Slider</td>
+      <td>0-100%，默认80%</td>
+      <td>控制对称镜像补全的叠加比例。100%为完全镜像覆盖另半脸，0%为不补全。用户可在中间值查看镜像与TPS变形的混合效果，适合处理不完全对称的面部特征。</td>
+    </tr>
+    <tr>
+      <td>TPS柔性度</td>
+      <td>Range Slider</td>
+      <td>0-100%，默认50%</td>
+      <td>控制薄板样条变形的平滑程度。值越大变形越柔和、过渡越自然但可能模糊细节；值越小变形越精确、保留更多原始纹理但可能出现扭曲。拖动实时重新计算TPS系数并渲染。</td>
+    </tr>
+    <tr>
+      <td>泊松融合</td>
+      <td>Toggle</td>
+      <td>默认开启</td>
+      <td>开启时对镜像区域与原始区域边界做泊松融合消除接缝。关闭时直接硬拼接，边界可见明显接缝。</td>
+    </tr>
+    <tr>
+      <td>色调匹配</td>
+      <td>Toggle</td>
+      <td>默认开启</td>
+      <td>开启时对镜像区域做直方图匹配使色调与可见侧一致。关闭时镜像区域保留原始色调，可能出现左右明暗不一致。</td>
+    </tr>
+  </table>
+
+  <h4>共用参数</h4>
+  <table>
+    <tr>
+      <th style="width:18%">控件</th>
+      <th style="width:15%">类型</th>
+      <th style="width:15%">范围/默认</th>
+      <th>交互逻辑</th>
+    </tr>
+    <tr>
+      <td>对比模式</td>
+      <td>Toggle</td>
+      <td>默认关闭</td>
+      <td>两种模式共用。开启时结果区域左右分屏显示原图人脸和转换结果，中间分隔线可拖动。</td>
+    </tr>
+  </table>
+
+  <h4>交互状态流</h4>
+  <div class="flow-diagram">
+    <div class="flow-node">选择模式</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node">加载图像</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node" id="mode-step">人脸检测（自动）</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node">首次转换完成</div>
+    <span class="flow-arrow">↔</span>
+    <div class="flow-node">参数调整循环</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node">导出结果</div>
+  </div>
+
+  <p>动漫人脸模式下，"人脸检测"步骤替换为"关键点标注"步骤，其余流程一致。</p>
+</div>
+
+<!-- 3.6 结果显示与导出 -->
+<div class="section">
+  <h3>3.6 结果显示与导出</h3>
+
+  <table>
+    <tr>
+      <th style="width:25%">功能点</th>
+      <th style="width:15%">优先级</th>
+      <th>描述</th>
+    </tr>
+    <tr>
+      <td>结果实时显示</td>
+      <td><span class="badge badge-must">必须</span></td>
+      <td>每次转换或参数调整后，结果区域立即更新。顶部状态栏显示当前模式、转换耗时和渲染分辨率。</td>
+    </tr>
+    <tr>
+      <td>缩放与拖拽</td>
+      <td><span class="badge badge-should">建议</span></td>
+      <td>鼠标滚轮缩放结果图像（50%-400%），按住左键拖拽平移。双击恢复适应窗口。</td>
+    </tr>
+    <tr>
+      <td>对比模式</td>
+      <td><span class="badge badge-should">建议</span></td>
+      <td>结果区域左右分屏显示原图人脸和转换结果，中间分隔线可拖动。</td>
+    </tr>
+    <tr>
+      <td>导出结果</td>
+      <td><span class="badge badge-must">必须</span></td>
+      <td>点击"导出结果"弹出保存对话框，默认文件名"frontal_原文件名.png"，支持PNG和JPG。导出分辨率为渲染原始分辨率。</td>
+    </tr>
+    <tr>
+      <td>耗时统计</td>
+      <td><span class="badge badge-should">建议</span></td>
+      <td>从"加载图像"开始计时，到"导出结果"停止。导出对话框显示总耗时（含模型加载/标注时间/转换/调整/导出），分模式统计。动漫模式下自动转换耗时与手动标注耗时分开展示。</td>
+    </tr>
+  </table>
+</div>
+
+<!-- 4. 技术方案 -->
+<div class="section">
+  <h2>4 技术方案概述</h2>
+
+  <h3>4.1 技术选型</h3>
+
+  <table>
+    <tr>
+      <th style="width:20%">模块</th>
+      <th style="width:25%">技术/工具</th>
+      <th>适用模式</th>
+    </tr>
+    <tr>
+      <td>GUI框架</td>
+      <td>PySide6 (Qt for Python)</td>
+      <td>共用</td>
+    </tr>
+    <tr>
+      <td>人脸检测+3D重建</td>
+      <td>3DDFA_V2 (cleardusk/3ddfa_v2) — RetinaFace检测 + 3DMM回归 + Sim3DR渲染</td>
+      <td><span class="badge badge-real">真实人脸</span></td>
+    </tr>
+    <tr>
+      <td>ONNX推理后端</td>
+      <td>ONNXRuntime (CPU EP)</td>
+      <td><span class="badge badge-real">真实人脸</span></td>
+    </tr>
+    <tr>
+      <td>关键点标注+TPS变形</td>
+      <td>OpenCV + SciPy (RBF插值) — 交互式标注 + 薄板样条warp</td>
+      <td><span class="badge badge-anime">动漫人脸</span></td>
+    </tr>
+    <tr>
+      <td>对称镜像+泊松融合</td>
+      <td>OpenCV (cv2.warpAffine, cv2.seamlessClone, cv2.createTrackbar)</td>
+      <td><span class="badge badge-anime">动漫人脸</span></td>
+    </tr>
+    <tr>
+      <td>图像处理基础</td>
+      <td>OpenCV (cv2) + NumPy</td>
+      <td>共用</td>
+    </tr>
+    <tr>
+      <td>渲染</td>
+      <td>Sim3DR (3DDFA_V2内置，Cython)</td>
+      <td><span class="badge badge-real">真实人脸</span></td>
+    </tr>
+  </table>
+
+  <h3>4.2 依赖与部署</h3>
+
+  <div class="code-block">pip install PySide6 onnxruntime opencv-python numpy scipy cython
+# 3DDFA_V2（真实人脸模式）
+git clone https://github.com/cleardusk/3ddfa_v2.git
+cd 3ddfa_v2 && pip install -e .</div>
+
+  <div class="callout">
+    真实人脸模式的模型权重随3DDFA_V2仓库分发，动漫人脸模式仅依赖OpenCV+SciPy，无需任何模型文件。两种模式均完全离线运行。如果仅需动漫人脸模式，可跳过3DDFA_V2安装。
+  </div>
+
+  <h3>4.3 关键性能指标</h3>
+
+  <div class="dual-col">
+    <div class="dual-col-item">
+      <div class="dual-col-header real">真实人脸模式</div>
+      <div class="dual-col-body">
+        <table>
+          <tr><th>指标</th><th>目标值</th></tr>
+          <tr><td>模型加载</td><td>< 2s</td></tr>
+          <tr><td>首次完整转换</td><td>< 1s</td></tr>
+          <tr><td>增量渲染</td><td>< 100ms</td></tr>
+          <tr><td>全分辨率渲染</td><td>< 300ms</td></tr>
+          <tr><td>内存占用</td><td>< 1GB</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="dual-col-item">
+      <div class="dual-col-header anime">动漫人脸模式</div>
+      <div class="dual-col-body">
+        <table>
+          <tr><th>指标</th><th>目标值</th></tr>
+          <tr><td>启动</td><td>即时（无模型）</td></tr>
+          <tr><td>TPS变形</td><td>< 100ms</td></tr>
+          <tr><td>镜像+融合</td><td>< 80ms</td></tr>
+          <tr><td>增量渲染</td><td>< 150ms</td></tr>
+          <tr><td>内存占用</td><td>< 300MB</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <h3>4.4 双模式架构设计</h3>
+
+  <div class="code-block">class FaceFrontalizer(ABC):
+    """抽象基类：侧脸转正脸"""
+    @abstractmethod
+    def convert(self, image: np.ndarray) -> np.ndarray: ...
+
+class RealFaceFrontalizer(FaceFrontalizer):
+    """真实人脸：3DDFA_V2 全自动管线"""
+    def convert(self, image):
+        boxes = self.retinface.detect(image)
+        param = self.tddfa.regress(image, boxes)
+        vertices = self.bfm.transform(param, yaw=0, pitch=0, roll=0)
+        result = self.sim3dr.render(vertices, image)
+        return result
+
+class AnimeFaceFrontalizer(FaceFrontalizer):
+    """动漫人脸：TPS + 对称镜像管线"""
+    def convert(self, image, keypoints, mirror=0.8, tps=0.5):
+        frontal_template = self.build_symmetric_template(keypoints)
+        warped = self.tps_warp(image, keypoints, frontal_template, tps)
+        mirrored = self.mirror_half(warped, mirror)
+        result = self.poisson_blend(warped, mirrored)
+        return result</div>
+</div>
+
+<!-- 5. 界面设计规范 -->
+<div class="section">
+  <h2>5 界面设计规范</h2>
+
+  <h3>5.1 色彩系统</h3>
+
+  <table>
+    <tr>
+      <th style="width:20%">用途</th>
+      <th style="width:20%">色值</th>
+      <th>使用场景</th>
+    </tr>
+    <tr>
+      <td>主背景</td>
+      <td>#F5F5F5</td>
+      <td>应用主窗口背景</td>
+    </tr>
+    <tr>
+      <td>面板背景</td>
+      <td>#FFFFFF</td>
+      <td>三个功能区域的卡片背景</td>
+    </tr>
+    <tr>
+      <td>主文字</td>
+      <td>#333333</td>
+      <td>标题、正文、按钮文字</td>
+    </tr>
+    <tr>
+      <td>次要文字</td>
+      <td>#999999</td>
+      <td>状态栏、提示信息</td>
+    </tr>
+    <tr>
+      <td>边框</td>
+      <td>#DCDCDC</td>
+      <td>面板边框、分隔线</td>
+    </tr>
+    <tr>
+      <td>主按钮</td>
+      <td>#333333 背景 + #FFFFFF 文字</td>
+      <td>"加载图像"、"开始转换"等主操作</td>
+    </tr>
+    <tr>
+      <td>模式切换-激活</td>
+      <td>#444444 背景 + #FFFFFF 文字</td>
+      <td>当前选中模式的按钮</td>
+    </tr>
+    <tr>
+      <td>真实人脸标记色</td>
+      <td>#4A6A8A</td>
+      <td>真实人脸模式专属标注、关键点显示</td>
+    </tr>
+    <tr>
+      <td>动漫人脸标记色</td>
+      <td>#8A6A4A</td>
+      <td>动漫人脸模式专属标注、关键点显示</td>
+    </tr>
+  </table>
+
+  <h3>5.2 字体与间距</h3>
+  <table>
+    <tr>
+      <th style="width:25%">元素</th>
+      <th style="width:25%">规格</th>
+      <th>备注</th>
+    </tr>
+    <tr>
+      <td>窗口标题</td>
+      <td>16px / Bold</td>
+      <td>顶部标题栏</td>
+    </tr>
+    <tr>
+      <td>面板标题</td>
+      <td>13px / Semibold</td>
+      <td>各区域顶部标签</td>
+    </tr>
+    <tr>
+      <td>正文/控件</td>
+      <td>12px / Regular</td>
+      <td>按钮文字、滑块标签</td>
+    </tr>
+    <tr>
+      <td>状态信息</td>
+      <td>11px / Regular / #999</td>
+      <td>状态栏、提示文字</td>
+    </tr>
+    <tr>
+      <td>面板间距</td>
+      <td>12px</td>
+      <td>三个区域之间的间隔</td>
+    </tr>
+    <tr>
+      <td>控件间距</td>
+      <td>6px</td>
+      <td>同一组内按钮之间的间隔</td>
+    </tr>
+    <tr>
+      <td>内边距</td>
+      <td>10px</td>
+      <td>各面板内容区与边框的距离</td>
+    </tr>
+  </table>
+
+  <h3>5.3 图标与视觉元素</h3>
+  <ul style="margin-left:20px;color:#444;line-height:2">
+    <li>所有图标使用简洁的线性图标，1.5px线宽，灰色#888</li>
+    <li>加载区域使用虚线边框+加号图标，引导用户点击或拖入</li>
+    <li>模式切换器使用分段按钮设计，激活项深色背景</li>
+    <li>动漫模式关键点以模式专属色实心圆显示（#8A6A4A），已标注蓝色、待标注灰色空心</li>
+    <li>真实模式人脸检测框以模式专属色显示（#4A6A8A）</li>
+    <li>不使用渐变、阴影、毛玻璃等装饰效果，保持纯灰白色调</li>
+  </ul>
+</div>
+
+<!-- 6. 边界与异常 -->
+<div class="section">
+  <h2>6 边界与异常处理</h2>
+
+  <table>
+    <tr>
+      <th style="width:25%">场景</th>
+      <th style="width:15%">触发条件</th>
+      <th>处理方式</th>
+    </tr>
+    <tr>
+      <td>真实模式未检测到人脸</td>
+      <td>RetinaFace输出为空</td>
+      <td>提示"未检测到真实人脸，建议切换至动漫人脸模式手动标注"，保持原图加载状态</td>
+    </tr>
+    <tr>
+      <td>动漫模式关键点不足</td>
+      <td>标注点数 < 最低要求（8个）</td>
+      <td>禁用"开始转换"按钮，提示"至少标注8个关键点，还需标注X个"</td>
+    </tr>
+    <tr>
+      <td>模式切换时已有结果</td>
+      <td>用户切换模式时已加载图像</td>
+      <td>保留原图和加载状态，清除结果区域，重置参数控件为新模式默认值。提示"已切换至X模式，请重新执行转换"</td>
+    </tr>
+    <tr>
+      <td>多张人脸（真实模式）</td>
+      <td>检测到>1个人脸框</td>
+      <td>默认选面积最大者，在原图标注所有人脸框，用户可点击切换</td>
+    </tr>
+    <tr>
+      <td>图像过大</td>
+      <td>分辨率>4096px</td>
+      <td>自动缩放至最大边2048px后处理，导出时可选原始分辨率</td>
+    </tr>
+    <tr>
+      <td>极端侧脸</td>
+      <td>Yaw > 75°（真实）或标注点严重不对称（动漫）</td>
+      <td>结果区域标注"极端侧脸，补全区域较多"。真实模式建议配合纹理补全开关对比；动漫模式建议降低镜像强度查看TPS变形原始效果</td>
+    </tr>
+    <tr>
+      <td>模型加载失败</td>
+      <td>3DDFA_V2权重文件缺失</td>
+      <td>真实模式不可用，提示"模型文件缺失，真实人脸模式不可用，请使用动漫人脸模式"。动漫模式不受影响</td>
+    </tr>
+    <tr>
+      <td>导出目录不可写</td>
+      <td>权限不足或磁盘满</td>
+      <td>提示具体错误原因，建议更换保存路径</td>
+    </tr>
+  </table>
+</div>
+
+</div>
+
+<script>
+var currentMode = 'real';
+
+function switchMode(mode) {
+  currentMode = mode;
+  document.getElementById('mode-real-btn').classList.toggle('active', mode === 'real');
+  document.getElementById('mode-anime-btn').classList.toggle('active', mode === 'anime');
+  document.getElementById('real-controls').style.display = mode === 'real' ? 'block' : 'none';
+  document.getElementById('anime-controls').style.display = mode === 'anime' ? 'block' : 'none';
+  
+  var step = document.getElementById('mode-step');
+  step.textContent = mode === 'real' ? '人脸检测（自动）' : '关键点标注（手动）';
+  step.className = 'flow-node ' + mode;
+  
+  // Reset result
+  var rp = document.getElementById('result-panel');
+  var ph = rp.querySelector('.img-placeholder');
+  if (ph) {
+    ph.className = 'img-placeholder';
+    ph.innerHTML = '<div class="icon">○</div><span>转换结果将在此显示</span>';
+  }
+  document.getElementById('result-info').textContent = '等待转换';
+  document.getElementById('btn-convert').disabled = true;
+  document.getElementById('btn-export').disabled = true;
+}
+
+function loadMockImage() {
+  var ph = document.getElementById('orig-placeholder');
+  ph.className = 'img-placeholder loaded';
+  
+  if (currentMode === 'real') {
+    ph.innerHTML = '<div class="face-silhouette"><svg viewBox="0 0 120 150"><path d="M60 15 Q90 15 95 50 Q95 85 75 120 Q60 135 45 120 Q25 85 25 50 Q30 15 60 15Z" fill="#d4d4d4" stroke="#bbb" stroke-width="1.5"/><circle cx="75" cy="55" r="3" fill="#999"/><path d="M65 70 Q70 80 60 85 Q50 80 55 70" fill="none" stroke="#999" stroke-width="1.5"/></svg></div><span style="font-size:11px;margin-top:4px;color:#999">真实人脸照片已加载</span>';
+    document.getElementById('orig-info').textContent = '已加载 · 512x512 · 1 face detected';
+  } else {
+    ph.innerHTML = '<div class="face-silhouette"><svg viewBox="0 0 120 150"><path d="M55 10 Q85 12 88 45 Q90 80 70 115 Q58 130 48 120 Q28 85 28 48 Q30 12 55 10Z" fill="#d4d4d4" stroke="#bbb" stroke-width="1.5"/><circle cx="72" cy="50" r="4" fill="none" stroke="#8A6A4A" stroke-width="1.5"/><circle cx="60" cy="75" r="2" fill="#8A6A4A"/><circle cx="52" cy="90" r="2" fill="#8A6A4A"/><circle cx="40" cy="60" r="3" fill="none" stroke="#bbb" stroke-width="1" stroke-dasharray="2,2"/></svg></div><span style="font-size:11px;margin-top:4px;color:#999">动漫侧脸已加载 · 请标注关键点</span>';
+    document.getElementById('orig-info').textContent = '已加载 · 397x460 · 动漫模式';
+  }
+  
+  document.getElementById('result-info').textContent = currentMode === 'real' ? '点击"开始转换"' : '请标注关键点后转换';
+  document.getElementById('btn-convert').disabled = false;
+
+  setTimeout(function(){
+    var rp = document.getElementById('result-panel');
+    var placeholder = rp.querySelector('.img-placeholder');
+    placeholder.className = 'img-placeholder loaded';
+    placeholder.innerHTML = '<div class="face-silhouette"><svg viewBox="0 0 120 150"><ellipse cx="60" cy="70" rx="32" ry="45" fill="#d4d4d4" stroke="#bbb" stroke-width="1.5"/><circle cx="48" cy="60" r="3" fill="#999"/><circle cx="72" cy="60" r="3" fill="#999"/><path d="M48 85 Q60 92 72 85" fill="none" stroke="#999" stroke-width="1.5"/></svg></div><span style="font-size:11px;margin-top:4px;color:#999">正脸渲染完成</span>';
+    var time = currentMode === 'real' ? '45ms' : '120ms';
+    document.getElementById('result-info').textContent = '转换完成 · ' + time;
+    document.getElementById('btn-export').disabled = false;
+  }, 600);
+}
+
+function updateYaw(v) { document.getElementById('yaw-val').textContent = v + '\u00b0'; triggerPreview(); }
+function updatePitch(v) { document.getElementById('pitch-val').textContent = v + '\u00b0'; triggerPreview(); }
+function updateRoll(v) { document.getElementById('roll-val').textContent = v + '\u00b0'; triggerPreview(); }
+function updateMirror(v) { document.getElementById('mirror-val').textContent = v + '%'; triggerPreview(); }
+function updateTps(v) { document.getElementById('tps-val').textContent = v + '%'; triggerPreview(); }
+
+function triggerPreview() {
+  var info = document.getElementById('result-info');
+  info.textContent = '渲染中...';
+  setTimeout(function(){ info.textContent = '已更新'; }, 200);
+}
+
+function resetAngles() {
+  document.getElementById('yaw-slider').value = 0;
+  document.getElementById('pitch-slider').value = 0;
+  document.getElementById('roll-slider').value = 0;
+  document.getElementById('yaw-val').textContent = '0\u00b0';
+  document.getElementById('pitch-val').textContent = '0\u00b0';
+  document.getElementById('roll-val').textContent = '0\u00b0';
+  triggerPreview();
+}
+
+function resetAnimeParams() {
+  document.getElementById('mirror-slider').value = 80;
+  document.getElementById('tps-slider').value = 50;
+  document.getElementById('mirror-val').textContent = '80%';
+  document.getElementById('tps-val').textContent = '50%';
+  triggerPreview();
+}
+</script>
+
+</body>
+</html>

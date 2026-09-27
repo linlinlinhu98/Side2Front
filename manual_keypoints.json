@@ -1,0 +1,292 @@
+{
+  "_readme": "人工精标关键点（按图像文件内容 md5 索引）。GUI 加载图像时若 md5 命中，则直接使用这里的关键点，跳过自动检测。16 点 schema 与 anime-face-detector 一致。",
+  "13ef60de932bb979aaa107ad210a327a": {
+    "_comment": "face.png 520x660 动漫少年左侧脸",
+    "keypoints": {
+      "brow_left_inner": [
+        100,
+        172
+      ],
+      "brow_left_outer": [
+        168,
+        160
+      ],
+      "eye_left_inner": [
+        116,
+        193
+      ],
+      "eye_left_outer": [
+        166,
+        196
+      ],
+      "nose_tip": [
+        69,
+        248
+      ],
+      "mouth_left": [
+        76,
+        299
+      ],
+      "mouth_center": [
+        92,
+        300
+      ],
+      "mouth_right": [
+        107,
+        300
+      ],
+      "chin_left": [
+        97,
+        320
+      ],
+      "chin_right": [
+        142,
+        337
+      ],
+      "chin_tip": [
+        115,
+        350
+      ],
+      "ear_top": [
+        267,
+        194
+      ],
+      "ear_bottom": [
+        271,
+        261
+      ],
+      "hairline_left": [
+        110,
+        140
+      ],
+      "hairline_center": [
+        179,
+        111
+      ],
+      "hairline_right": [
+        232,
+        126
+      ]
+    }
+  },
+  "a2a25ff5a77355852a1dfdfc8d0b597d": {
+    "_comment": "cat.jpg 1024x1007 虎斑猫 3/4 侧面",
+    "keypoints": {
+      "brow_left_inner": [
+        495,
+        305
+      ],
+      "brow_left_outer": [
+        600,
+        285
+      ],
+      "eye_left_inner": [
+        498,
+        346
+      ],
+      "eye_left_outer": [
+        578,
+        324
+      ],
+      "nose_tip": [
+        272,
+        510
+      ],
+      "mouth_left": [
+        285,
+        590
+      ],
+      "mouth_center": [
+        305,
+        570
+      ],
+      "mouth_right": [
+        395,
+        590
+      ],
+      "chin_left": [
+        275,
+        615
+      ],
+      "chin_right": [
+        410,
+        625
+      ],
+      "chin_tip": [
+        335,
+        648
+      ],
+      "ear_top": [
+        905,
+        8
+      ],
+      "ear_bottom": [
+        830,
+        210
+      ],
+      "hairline_left": [
+        420,
+        120
+      ],
+      "hairline_center": [
+        565,
+        98
+      ],
+      "hairline_right": [
+        720,
+        118
+      ]
+    }
+  },
+  "references": {
+    "13ef60de932bb979aaa107ad210a327a": {
+      "_comment": "face.png 正面参考: 13段SD流水线定稿 genr156_s42 (result/final_frontal.png), CLIP复合相似度0.762",
+      "final": true,
+      "ref": "result/final_frontal.png",
+      "offset": [
+        0.0,
+        0.0
+      ],
+      "keypoints": {
+        "brow_left_inner": [
+          255,
+          199
+        ],
+        "brow_left_outer": [
+          313,
+          192
+        ],
+        "eye_left_inner": [
+          266,
+          232
+        ],
+        "eye_left_outer": [
+          307,
+          223
+        ],
+        "nose_tip": [
+          238,
+          287
+        ],
+        "mouth_left": [
+          224,
+          314
+        ],
+        "mouth_center": [
+          240,
+          315
+        ],
+        "mouth_right": [
+          258,
+          316
+        ],
+        "chin_left": [
+          175,
+          321
+        ],
+        "chin_right": [
+          311,
+          332
+        ],
+        "chin_tip": [
+          240,
+          347
+        ],
+        "ear_top": [
+          345,
+          221
+        ],
+        "ear_bottom": [
+          352,
+          262
+        ],
+        "hairline_left": [
+          108,
+          140
+        ],
+        "hairline_center": [
+          250,
+          32
+        ],
+        "hairline_right": [
+          420,
+          160
+        ]
+      }
+    },
+    "a2a25ff5a77355852a1dfdfc8d0b597d": {
+      "_comment": "cat.jpg 正面参考: SD1.5+IP-Adapter cand_3, 512x512",
+      "ref": "assets/ref_gen/cat/best.png",
+      "offset": [
+        0.0,
+        0.0
+      ],
+      "keypoints": {
+        "brow_left_inner": [
+          322,
+          130
+        ],
+        "brow_left_outer": [
+          395,
+          118
+        ],
+        "eye_left_inner": [
+          322,
+          178
+        ],
+        "eye_left_outer": [
+          398,
+          165
+        ],
+        "nose_tip": [
+          255,
+          262
+        ],
+        "mouth_left": [
+          190,
+          296
+        ],
+        "mouth_center": [
+          253,
+          292
+        ],
+        "mouth_right": [
+          318,
+          296
+        ],
+        "chin_left": [
+          175,
+          315
+        ],
+        "chin_right": [
+          330,
+          315
+        ],
+        "chin_tip": [
+          253,
+          340
+        ],
+        "ear_top": [
+          425,
+          10
+        ],
+        "ear_bottom": [
+          378,
+          112
+        ],
+        "hairline_left": [
+          140,
+          78
+        ],
+        "hairline_center": [
+          253,
+          62
+        ],
+        "hairline_right": [
+          360,
+          75
+        ]
+      }
+    }
+  }
+}
