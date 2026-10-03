@@ -133,5 +133,5 @@ else:  # flow
         if started.get("args") else ""
     ok = "gen_frontal_refs" in script
     print(f"== 判定: "
-          f"{'✓ 走动物通道' if ok else '✗ 未走动物通道!'} ==",
+          f"{'[OK] 走动物通道' if ok else '[NG] 未走动物通道!'} ==",
           flush=True)
