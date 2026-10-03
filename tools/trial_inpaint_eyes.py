@@ -29,8 +29,38 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 from core.anime_face import AnimeFaceFrontalizer  # noqa: E402
-from trial_final_face import DONOR_KPS, _gray  # noqa: E402
-from trial_final_face2 import skin_erase  # noqa: E402
+DONOR_KPS = {
+    "hairline_left": (330, 300), "hairline_center": (253, 290),
+    "hairline_right": (180, 300),
+    "brow_left_inner": (288, 350), "brow_left_outer": (360, 330),
+    "eye_left_inner": (295, 380), "eye_left_outer": (355, 372),
+    "eye_right_inner": (215, 380), "eye_right_outer": (158, 372),
+    "nose_tip": (253, 458), "nose_left": (242, 465),
+    "nose_right": (264, 465),
+    "mouth_left": (235, 518), "mouth_center": (253, 521),
+    "mouth_right": (272, 518),
+    "chin_tip": (253, 598), "chin_left": (208, 572),
+    "chin_right": (300, 572),
+    "ear_top": (370, 355), "ear_bottom": (360, 445),
+}
+
+
+def _gray(img):
+    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if img.ndim == 3 \
+        else img
+
+
+def skin_erase(img, rect, feather=6):
+    """Erase rect, fill with blur-25 skin base of the pre-erased
+    image (preserves the global shading gradient)."""
+    x0, y0, x1, y1 = rect
+    m = np.zeros(img.shape, np.float32)
+    m[y0:y1, x0:x1] = 1.0
+    m = cv2.GaussianBlur(m, (0, 0), feather)
+    prelim = img.astype(np.float32) * (1 - m) + 255.0 * m
+    skin = cv2.GaussianBlur(prelim, (0, 0), 25)
+    return (img.astype(np.float32) * (1 - m)
+            + skin * m).astype(np.uint8)
 
 OUT = os.path.join(ROOT, "assets", "geom", "inpaint_eyes")
 EYES = ((215, 219), (297, 219))       # composite eye centers
@@ -152,7 +182,6 @@ def _fix_body(img):
     SECOND body), plus a wide square collar hole (= second neck).
     Fixes: targeted Telea-erase of the inner contours / wide collar
     / seam strip, then redraw ONE narrow V collar + ONE zipper."""
-    from trial_final_face2 import skin_erase
     def erase_lines(pts, w=6, thresh=220):
         m = np.zeros(img.shape, np.uint8)
         cv2.polylines(m, [np.array(pts, np.int32)], False, 255, w)

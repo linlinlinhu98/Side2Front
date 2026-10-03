@@ -24,10 +24,7 @@ from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 from trial_inpaint_eyes import _find_file, OUT  # noqa: E402
-from gen_cn_unify import _lineart  # noqa: E402
-from gen_r83 import LORA_DIR, TRIGGER, CX, _scale_lora  # noqa: E402
-from gen_r101 import _load_dpm  # noqa: E402
-from gen_r102 import STEPS  # noqa: E402
+from gen_anime_common import CX, LORA_DIR, STEPS, TRIGGER, _lineart, _load_dpm, _scale_lora  # noqa: E402
 
 
 def _seeds():

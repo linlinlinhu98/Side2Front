@@ -49,10 +49,7 @@ from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 from trial_inpaint_eyes import _find_file  # noqa: E402
-from gen_cn_unify import _lineart  # noqa: E402
-from gen_r83 import TRIGGER, _scale_lora  # noqa: E402
-from gen_r101 import _load_dpm  # noqa: E402
-from gen_r102 import STEPS  # noqa: E402
+from gen_anime_common import STEPS, TRIGGER, _lineart, _load_dpm, _scale_lora  # noqa: E402
 
 PROMPT = (f"{TRIGGER}, 1person, front view, facing the viewer, "
           "symmetrical face, calm expression, "
