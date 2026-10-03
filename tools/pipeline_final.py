@@ -105,7 +105,7 @@ def main():
             os.path.splitext(out_name)[0].rsplit("_s", 1)[-1]
         r = subprocess.run(
             [sys.executable,
-             os.path.join(ROOT, "tools", f"{mod}.py")],
+             os.path.join(ROOT, "tools", "stages", f"{mod}.py")],
             env=env, cwd=ROOT)
         if r.returncode != 0 or not os.path.exists(out_path):
             print(f"[pipeline] FAILED at {mod} "

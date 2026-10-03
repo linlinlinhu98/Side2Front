@@ -9,7 +9,12 @@ Stage 1: ControlNet img2img (s7 whitened base + zipper guide)
          + LoRA + trigger in prompt, guidance 2.0, IP scale 0.7
 Stage 2: generative eye-band repaint (same as R63)
 
-Outputs genlora_{full,ht}_s{7,42,998}.png + *_eye.png + sheets.
+Merged from gen_lora_style.py + gen_plus4.py (R63): gen_plus4
+was the no-LoRA predecessor of this exact route; its shared
+helpers (PROMPT/NEG/EYE_*/DS_RECTS/EYE_BAND/_guide/_eye_mask)
+and constants are identical, so only its superseded main()
+(no style LoRA) was dropped. Outputs
+genlora_{full,ht}_s{7,42,998}.png + *_eye.png + sheets.
 """
 import os
 import sys
@@ -22,17 +27,59 @@ from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
+_HFC = os.environ.get("HF_HOME", r"D:\huggingface_cache")
 from trial_inpaint_eyes import _find_file, OUT  # noqa: E402
-from gen_plus4 import (_guide, _eye_mask, DS_RECTS,  # noqa: E402
-                       EYE_PROMPT, EYE_NEG, PROMPT, NEG)
+from gen_anime_common import LORA_DIR, TRIGGER, _lineart  # noqa: E402
 
-LORA_DIR = os.path.join(ROOT, "assets", "lora", "s2fstyle")
-TRIGGER = "s2fstyle"
+PROMPT = ("1boy, mature, handsome, calm expression, "
+          "monochrome, greyscale, pencil (medium), sketch, "
+          "waist up, front view, looking at viewer, "
+          "arms at sides, relaxed shoulders, black hair, short "
+          "hair, narrow eyes, sharp eyes, defined jawline, bangs, "
+          "hood down, loose hoodie, high collar, zipper, long "
+          "sleeves, blush, white background")
+NEG = ("lowres, bad anatomy, text, error, cropped, worst "
+       "quality, low quality, jpeg artifacts, signature, "
+       "watermark, blurry, color, colored, photo, realistic, 3d, "
+       "long hair, hat, shota, child, childish, cute, chibi, "
+       "round eyes, big eyes, turtleneck, drawstrings, hunched "
+       "shoulders, arms crossed, hands on chest, fat, bulky, "
+       "thick neck, dark background, grey background")
+
+EYE_PROMPT = ("narrow eyes, sharp eyes, calm expression, mature, "
+              "handsome, monochrome, greyscale, pencil (medium), "
+              "traditional media, sketch, looking at viewer, "
+              "best quality")
+EYE_NEG = ("round eyes, big eyes, cute, shota, childish, lowres, "
+           "bad anatomy, blurry, color, colored, watermark")
+
+# drawstring rectangles on the s7 canvas (same coords as guide)
+DS_RECTS = [(415, 480, 208, 242), (415, 480, 278, 308)]
+# eye band on generated candidates (measured on genplus2)
+EYE_BAND = (272, 336, 198, 316)          # y0, y1, x0, x1
+
 SEEDS = [7, 42, 998]
 STRENGTH = 0.55
 CN_SCALE = 0.65
 IP_SCALE = 0.7
 GUIDANCE = 2.0
+
+
+def _guide(base):
+    lines = _lineart(base)
+    cv2.line(lines, (256, 425), (256, 535), 60, 2, cv2.LINE_AA)
+    cv2.circle(lines, (256, 427), 5, 60, 1, cv2.LINE_AA)
+    return lines
+
+
+def _eye_mask(shape):
+    H, W = shape
+    m = np.zeros((H, W), np.uint8)
+    y0, y1, x0, x1 = EYE_BAND
+    cv2.ellipse(m, ((x0 + x1) // 2, (y0 + y1) // 2),
+                ((x1 - x0) // 2, (y1 - y0) // 2), 0, 0, 360, 255,
+                -1)
+    return cv2.GaussianBlur(m, (0, 0), 6)
 
 
 def _apply_lora(unet):
@@ -64,11 +111,10 @@ def main():
         "lllyasviel/control_v11p_sd15_lineart",
         torch_dtype=torch.float32)
     lcm = _find_file(os.path.join(
-        r"D:\huggingface_cache",
-        "models--latent-consistency--lcm-lora-sdv1-5"),
+        _HFC, "models--latent-consistency--lcm-lora-sdv1-5"),
         "pytorch_lora_weights.safetensors")
     ckpt = _find_file(os.path.join(
-        r"D:\huggingface_cache", "models--gsdf--Counterfeit-V3.0"),
+        _HFC, "models--gsdf--Counterfeit-V3.0"),
         "_fp16.safetensors")
 
     pipe = StableDiffusionControlNetImg2ImgPipeline \

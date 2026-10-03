@@ -1,18 +1,18 @@
-"""R154 (user rule: both straps must be symmetric and the
-SAME width; original has no buckle hardware. R153 removed
-the blob + widened the top, but the right strap is still
-not uniform: dome top 63px vs upper body 37px):
+"""R155 (user rule: straps symmetric, SAME width, no
+buckles since the original has none - R154 made the right
+strap a uniform 48px band at x386-434; now do the left):
 
-Full right-strap uniform redraw: whiten the whole strap
-zone (dome + varying body), redraw ONE uniform strap:
-- edges at x=386 / x=434 (center 410, width 48 = left
-  strap's target width), straight vertical y448-655
-- top cap at y446 (strap starts at the shoulder line)
-- diagonal hatching every 12px, NO buckle
+Full left-strap uniform redraw (erases the buckle+ring
+cluster y555-645 with it):
+- mirror position of the right strap about the zipper
+  center 258: edges at x=82 / x=130 (=2*258-434, 2*258-386),
+  width 48 = right strap
+- edges straight y448-656, top cap at y447 under the
+  collar fold, diagonal hatching every 12px, NO hardware
 - init: whiten zone + tonal seed (value 120) the uniform
   band
 - composite back only the zone
-Base: genr153_s42. DPM-26, LoRA 1.0, CN 1.0,
+Base: genr154_s42. DPM-26, LoRA 1.0, CN 1.0,
 strength 0.70. 2 seeds.
 """
 import os
@@ -24,7 +24,8 @@ import numpy as np
 import torch
 from PIL import Image
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 from trial_inpaint_eyes import _find_file, OUT  # noqa: E402
 from gen_anime_common import CX, LORA_DIR, STEPS, TRIGGER, _lineart, _load_dpm, _scale_lora  # noqa: E402
@@ -43,8 +44,8 @@ NEG = ("tapering, narrow strap, wide bulge, buckle, ring, "
        "hardware, scribble, color, colored, lowres, "
        "blurry, watermark")
 
-ZX0, ZX1, ZY0, ZY1 = 358, 448, 428, 660
-SC = 410          # strap center
+ZX0, ZX1, ZY0, ZY1 = 58, 148, 428, 660
+SC = 106          # mirror of right strap center 410
 SW = 24           # half-width -> 48px total
 
 
@@ -77,11 +78,11 @@ def _init(base):
 def _guide(base):
     g = _lineart(base)
     g[ZY0 + 4:ZY1, ZX0:ZX1] = 255
-    # uniform strap edges
+    # uniform strap edges (mirror of the right strap)
     for off in (-SW, SW):
         cv2.line(g, (SC + off, 448), (SC + off, 656), 55,
                  2, cv2.LINE_AA)
-    # top cap at the shoulder line
+    # top cap under the collar fold
     cv2.line(g, (SC - SW, 447), (SC + SW, 447), 55, 2,
              cv2.LINE_AA)
     # diagonal hatching
@@ -92,7 +93,7 @@ def _guide(base):
 
 
 def main():
-    base = cv2.imread(os.path.join(OUT, "genr153_s42.png"),
+    base = cv2.imread(os.path.join(OUT, "genr154_s42.png"),
                       0)
     assert base is not None
     H, W = base.shape
@@ -117,13 +118,13 @@ def main():
     mask = _mask((H, W))
     init = _init(base)
     guide = _guide(base)
-    cv2.imwrite(os.path.join(OUT, "_r154_guide.png"), guide)
+    cv2.imwrite(os.path.join(OUT, "_r155_guide.png"), guide)
 
     def _span(im, y):
-        xs = [x for x in range(350, 460) if im[y, x] < 170]
+        xs = [x for x in range(40, 170) if im[y, x] < 170]
         return (min(xs), max(xs)) if xs else None
 
-    print("[r154] before spans: " + " ".join(
+    print("[r155] before spans: " + " ".join(
         f"y{y}={_span(base, y)}" for y in (460, 470, 520,
                                            570, 620)),
           flush=True)
@@ -145,10 +146,10 @@ def main():
         g = cv2.cvtColor(np.asarray(res), cv2.COLOR_RGB2GRAY)
         g = cv2.resize(g, (W, H), interpolation=cv2.INTER_CUBIC)
         final = _composite(base, g, mask)
-        name = f"genr154_s{seed}.png"
+        name = f"genr155_s{seed}.png"
         cv2.imwrite(os.path.join(OUT, name), final)
         unchanged = (final[mask == 0] == base[mask == 0]).mean()
-        print(f"[r154 {name}] {time.time() - t0:.0f}s "
+        print(f"[r155 {name}] {time.time() - t0:.0f}s "
               f"unchanged_outside={unchanged:.3f} spans: "
               + " ".join(f"y{y}={_span(final, y)}"
                          for y in (460, 470, 520, 570, 620)),
@@ -156,10 +157,10 @@ def main():
 
     panels = [("base", base)]
     for seed in _seeds():
-        im = cv2.imread(os.path.join(OUT, f"genr154_s{seed}.png"), 0)
+        im = cv2.imread(os.path.join(OUT, f"genr155_s{seed}.png"), 0)
         panels.append((f"s{seed}", im))
     n = len(panels)
-    cz = [cv2.resize(im[420:660, 340:460], None, fx=2.6, fy=2.6,
+    cz = [cv2.resize(im[420:660, 30:170], None, fx=2.6, fy=2.6,
                      interpolation=cv2.INTER_CUBIC)
           for _, im in panels]
     ch, cw = cz[0].shape
@@ -171,8 +172,8 @@ def main():
                     0.6, 0, 2, cv2.LINE_AA)
         sheet[:, x:x + cw] = t
         x += cw + 8
-    cv2.imwrite(os.path.join(OUT, "_genr154_rstrap.png"), sheet)
-    print("[r154] sheets saved", flush=True)
+    cv2.imwrite(os.path.join(OUT, "_genr155_lstrap.png"), sheet)
+    print("[r155] sheets saved", flush=True)
 
 
 if __name__ == "__main__":

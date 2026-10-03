@@ -1,17 +1,15 @@
-"""R152B (R152 failed - block whitening ate the strap top
-and turned the shoulder to mush; switch to the R149-proven
-THIN-LINE removal: mask only the messy lines' own dark
-pixels, never touch the strap column x375-420):
+"""R149 (user review fix #1: the dangling line LEFT of the
+zipper - a half-drawn drawstring inherited from the REF's
+hoodie cords; the original is a pure zip-up, NO cords):
 
-Two thin-line masks in one pass:
-- zone A (shoulder-cap arc cluster): dark px (<150) in
-  x420-498/y415-490, dilated+feathered; guide whitens them
-  and draws ONE clean shoulder line (420,448)->(490,472)
-- zone B (collar-edge knot): dark px in x328-354/y418-444;
-  removed, the collar line bridges the gap from context
-- init whitens the same pixels; composite back only the
-  thin mask (strap body + texture bit-identical, verified)
-Base: genr151_s42. DPM-26, LoRA 0.8, CN 1.0,
+Thin-line removal: mask = the dark pixels of the dangling
+line only (dilated+feathered), whiten them in init AND
+guide so neither img2img nor ControlNet can redraw it,
+inpaint with a clean-fabric prompt, composite back only
+the thin mask (everything else bit-identical).
+Zone measured: x=197..215 line body, y=477..613; removal
+zone x=190..245, y=474..625 (collar edge above y~470 is
+protected). Base: genr148_s42. DPM-26, LoRA 0.8, CN 1.0,
 strength 0.70. 2 seeds.
 """
 import os
@@ -23,7 +21,8 @@ import numpy as np
 import torch
 from PIL import Image
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 from trial_inpaint_eyes import _find_file, OUT  # noqa: E402
 from gen_anime_common import CX, LORA_DIR, STEPS, TRIGGER, _lineart, _load_dpm, _scale_lora  # noqa: E402
@@ -34,24 +33,26 @@ def _seeds():
                  os.environ.get("S2F_SEEDS", "7,42").split(",")
                  if x)
 
-PROMPT = (f"{TRIGGER}, clean shoulder seam, smooth "
-          "shoulder line, hoodie fabric, pencil sketch, "
+PROMPT = (f"{TRIGGER}, clean fabric, smooth cloth, subtle "
+          "fabric folds, zip-up hoodie, pencil sketch, "
           "monochrome, white background")
-NEG = ("messy lines, scratchy, doubled lines, scribble, "
-       "extra lines, tangled, knot, color, colored, "
-       "lowres, blurry, watermark")
+NEG = ("drawstring, cord, hanging string, rope, strap, "
+       "dangling line, scribble, color, colored, lowres, "
+       "blurry, watermark")
 
-Z_A = (420, 498, 415, 490)   # arc cluster (right of strap)
-Z_B = (328, 354, 418, 444)   # collar knot
+# removal zone (x0, x1, y0, y1) - tight around the cord,
+# starts just below the collar edge
+ZONE = (190, 245, 474, 625)
 
 
-def _thin_mask(base):
+def _line_mask(base):
+    """Dark pixels of the cord only, dilated + feathered."""
+    x0, x1, y0, y1 = ZONE
     m = np.zeros(base.shape, np.uint8)
-    for x0, x1, y0, y1 in (Z_A, Z_B):
-        z = base[y0:y1, x0:x1]
-        core = (z < 150).astype(np.uint8) * 255
-        core = cv2.dilate(core, np.ones((7, 7), np.uint8))
-        m[y0:y1, x0:x1] = np.maximum(m[y0:y1, x0:x1], core)
+    z = base[y0:y1, x0:x1]
+    core = (z < 160).astype(np.uint8) * 255
+    core = cv2.dilate(core, np.ones((7, 7), np.uint8))
+    m[y0:y1, x0:x1] = core
     return cv2.GaussianBlur(m, (0, 0), 5)
 
 
@@ -63,7 +64,7 @@ def _composite(base, result, mask):
 
 
 def main():
-    base = cv2.imread(os.path.join(OUT, "genr151_s42.png"),
+    base = cv2.imread(os.path.join(OUT, "genr148_s42.png"),
                       0)
     assert base is not None
     H, W = base.shape
@@ -85,23 +86,18 @@ def main():
         emb = torch.cat([unc.unsqueeze(0), emb.unsqueeze(0)],
                         dim=0)
 
-    mask = _thin_mask(base)
+    mask = _line_mask(base)
+    # erase the cord from the guide too (else CN redraws it)
     guide = _lineart(base)
     guide[mask > 60] = 255
-    # one clean shoulder line right of the strap
-    cv2.line(guide, (420, 448), (490, 472), 55, 2,
-             cv2.LINE_AA)
+    # whiten the cord in init under the mask core
     init = base.copy()
     init[mask > 120] = 255
-    cv2.imwrite(os.path.join(OUT, "_r152b_guide.png"), guide)
-    cv2.imwrite(os.path.join(OUT, "_r152b_mask.png"), mask)
+    cv2.imwrite(os.path.join(OUT, "_r149_guide.png"), guide)
 
-    def _dark(im, x0, x1, y0, y1):
-        return int((im[y0:y1, x0:x1] < 150).sum())
-
-    print(f"[r152b] before: arc={_dark(base, 420, 498, 415, 490)} "
-          f"knot={_dark(base, 328, 354, 418, 444)} "
-          f"strap={_dark(base, 380, 415, 455, 510)}", flush=True)
+    n_dark_before = int((base[474:625, 190:245] < 160).sum())
+    print(f"[r149] cord dark px before={n_dark_before}",
+          flush=True)
     for seed in _seeds():
         t0 = time.time()
         res = pipe(prompt=PROMPT, negative_prompt=NEG,
@@ -120,22 +116,20 @@ def main():
         g = cv2.cvtColor(np.asarray(res), cv2.COLOR_RGB2GRAY)
         g = cv2.resize(g, (W, H), interpolation=cv2.INTER_CUBIC)
         final = _composite(base, g, mask)
-        name = f"genr152b_s{seed}.png"
+        name = f"genr149_s{seed}.png"
         cv2.imwrite(os.path.join(OUT, name), final)
         unchanged = (final[mask == 0] == base[mask == 0]).mean()
-        print(f"[r152b {name}] {time.time() - t0:.0f}s "
+        n_dark = int((final[474:625, 190:245] < 160).sum())
+        print(f"[r149 {name}] {time.time() - t0:.0f}s "
               f"unchanged_outside={unchanged:.3f} "
-              f"arc={_dark(final, 420, 498, 415, 490)} "
-              f"knot={_dark(final, 328, 354, 418, 444)} "
-              f"strap={_dark(final, 380, 415, 455, 510)}",
-              flush=True)
+              f"dark_after={n_dark}", flush=True)
 
     panels = [("base", base)]
     for seed in _seeds():
-        im = cv2.imread(os.path.join(OUT, f"genr152b_s{seed}.png"), 0)
+        im = cv2.imread(os.path.join(OUT, f"genr149_s{seed}.png"), 0)
         panels.append((f"s{seed}", im))
     n = len(panels)
-    cz = [cv2.resize(im[390:515, 280:510], None, fx=2.4, fy=2.4,
+    cz = [cv2.resize(im[440:640, 150:300], None, fx=3.0, fy=3.0,
                      interpolation=cv2.INTER_CUBIC)
           for _, im in panels]
     ch, cw = cz[0].shape
@@ -147,8 +141,8 @@ def main():
                     0.6, 0, 2, cv2.LINE_AA)
         sheet[:, x:x + cw] = t
         x += cw + 8
-    cv2.imwrite(os.path.join(OUT, "_genr152b_collar.png"), sheet)
-    print("[r152b] sheets saved", flush=True)
+    cv2.imwrite(os.path.join(OUT, "_genr149_cord.png"), sheet)
+    print("[r149] sheets saved", flush=True)
 
 
 if __name__ == "__main__":

@@ -1,16 +1,19 @@
-"""Same-person similarity vs 4/face.png (user criterion: 每张
-生图后和原图比对, 同一人特征相似度 >= 60% 才算可以).
+"""Similarity scorer, CLIP ViT-H/14 (cached, the IP-Adapter
+encoder): cosine similarity of the whole image + top/middle/bottom
+bands (hair / face / clothes), composite = mean of the four.
 
-Metric: CLIP ViT-H/14 (cached, the IP-Adapter encoder) cosine
-similarity — whole image + top/middle/bottom bands (hair / face
-/ clothes), composite = mean of the four.
+Two anchors (merged from _similarity.py + _similarity_ref.py):
+  default   vs the original 4/face.png (user criterion: 每张生图
+            后和原图比对, 同一人特征相似度 >= 60% 才算可以);
+            with no names it scores the historical candidate set
+            plus calibration floors (classmate screen-photo crop
+            scores ~0.38 raw because 70% of its pixels are
+            laptop/desk/wall; unrelated people/cat).
+  --ref     vs the AI reference result/8aa...jpg (user mandate:
+            与 AI 参考相似度 >= 75%); names resolved in OUT
+            then result/.
 
-The classmate result (result/ce89...) and the user reference
-(result/f156...) are scored too, as the calibration for what
-'passing' looks like.
-
-Usage: python tools/_similarity.py [name1.png name2.png ...]
-(default: the current candidate set)
+Usage: python tools/_similarity.py [--ref] [name1.png ...]
 """
 import os
 import sys
@@ -22,6 +25,9 @@ import torch
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 from trial_inpaint_eyes import OUT  # noqa: E402
+
+REF = os.path.join(ROOT, "result",
+                   "8aa591a6c9e652b79697d55eeee769ec.jpg")
 
 DEFAULT = [
     "genr69_s7_eye.png", "genr69_s42_eye.png",
@@ -40,7 +46,15 @@ def _emb(enc, proc, bgr):
 
 
 def main():
-    names = sys.argv[1:] or DEFAULT
+    args = sys.argv[1:]
+    vs_ref = "--ref" in args
+    names = [a for a in args if a != "--ref"]
+    if vs_ref and not names:
+        print("usage: _similarity.py --ref name1.png [...]")
+        return
+    if not names:
+        names = DEFAULT
+
     from transformers import (CLIPImageProcessor,
                               CLIPVisionModel)
     enc = CLIPVisionModel.from_pretrained(
@@ -48,44 +62,47 @@ def main():
         torch_dtype=torch.float32).eval()
     proc = CLIPImageProcessor()
 
-    orig = cv2.imread(os.path.join(ROOT, "4", "face.png"),
-                      cv2.IMREAD_COLOR)
-    H, W = orig.shape[:2]
+    anchor = cv2.imread(REF if vs_ref
+                        else os.path.join(ROOT, "4", "face.png"),
+                        cv2.IMREAD_COLOR)
+    H, W = anchor.shape[:2]
     bands = [(0, H // 3), (H // 3, 2 * H // 3), (2 * H // 3, H)]
-    o_whole = _emb(enc, proc, orig)
-    o_bands = [_emb(enc, proc, orig[y0:y1]) for y0, y1 in bands]
+    a_whole = _emb(enc, proc, anchor)
+    a_bands = [_emb(enc, proc, anchor[y0:y1]) for y0, y1 in bands]
 
     rows = []
     cands = [(n, os.path.join(OUT, n)) for n in names]
-    cands += [
-        # classmate result cropped out of the photo-of-screen
-        # (result/_classmate_panel.png); the raw photo scores
-        # ~0.38 because 70% of its pixels are laptop/desk/wall
-        ("CLASSMATE", os.path.join(
-            ROOT, "result", "_classmate_panel.png")),
-        ("REF_AI", os.path.join(
-            ROOT, "result",
-            "8aa591a6c9e652b79697d55eeee769ec.jpg")),
-        # unrelated floors for scale calibration
-        ("floor_people", os.path.join(ROOT, "4", "people.jpg")),
-        ("floor_cat", os.path.join(ROOT, "4", "cat.jpg")),
-    ]
+    cands += [(n, os.path.join(ROOT, "result", n)) for n in names]
+    if not vs_ref:
+        cands += [
+            # classmate result cropped out of the photo-of-screen
+            # (result/_classmate_panel.png); the raw photo scores
+            # ~0.38 because 70% of its pixels are laptop/desk/wall
+            ("CLASSMATE", os.path.join(
+                ROOT, "result", "_classmate_panel.png")),
+            ("REF_AI", REF),
+            # unrelated floors for scale calibration
+            ("floor_people", os.path.join(ROOT, "4", "people.jpg")),
+            ("floor_cat", os.path.join(ROOT, "4", "cat.jpg")),
+        ]
     for name, path in cands:
         im = cv2.imread(path, cv2.IMREAD_COLOR)
         if im is None:
             continue
         im = cv2.resize(im, (W, H))
-        s_whole = float(o_whole @ _emb(enc, proc, im))
-        s_bands = [float(ob @ _emb(enc, proc, im[y0:y1]))
-                   for ob, (y0, y1) in zip(o_bands, bands)]
+        s_whole = float(a_whole @ _emb(enc, proc, im))
+        s_bands = [float(ab @ _emb(enc, proc, im[y0:y1]))
+                   for ab, (y0, y1) in zip(a_bands, bands)]
         comp = (s_whole + sum(s_bands)) / 4
         rows.append((comp, name, s_whole, *s_bands))
 
     rows.sort(reverse=True)
+    tag = "vs 8aa REF" if vs_ref else "vs 4/face.png"
     print(f"{'composite':>9} {'whole':>7} {'hair':>7} {'face':>7} "
-          f"{'cloth':>7}  name")
+          f"{'cloth':>7}  name ({tag})")
     for comp, name, sw, s1, s2, s3 in rows:
-        flag = " PASS" if comp >= 0.60 else ""
+        flag = (" PASS75" if comp >= 0.75 else "") if vs_ref \
+            else (" PASS" if comp >= 0.60 else "")
         print(f"{comp:9.3f} {sw:7.3f} {s1:7.3f} {s2:7.3f} "
               f"{s3:7.3f}  {name}{flag}")
 

@@ -70,7 +70,7 @@ result/8aa…jpg (正脸参考) ┘        │
 ## 文件地图
 
 - `tools/pipeline_final.py` — 一键复现驱动（本文档的执行体）
-- `tools/gen_r119.py` / `gen_r145…r155.py` / `gen_r156.py` — 链上 13 段
+- `tools/stages/gen_r119.py` / `gen_r145…r155.py` / `gen_r156.py` — 链上 13 段
 - `tools/gen_anime_common.py` — 公共库（`_load_dpm` 装载 / STEPS / TRIGGER+LoRA / lineart，
   由原 gen_r101/r102/r83/gen_cn_unify 的共享部分合并而来）
 - `tools/_similarity.py` — 相似度验收

@@ -1,20 +1,20 @@
-"""R153 (user review: (a) small black blob just above-left of
-the right strap top at x364-378/y427-437, (b) right strap
-top is too narrow - 28px at y470 vs body ~50px and left
-strap ~50px; original has NO buckle hardware on straps, so
-straps are plain uniform bands):
+"""R151 (user review fix #3: the zipper below the ring pull
+(y>530) degenerates into wavy wandering double lines, and a
+stray arc sweeps down-left from below the ring to the lower
+chest; the original's zipper teeth are regular and run the
+full length):
 
-Right strap top pass (one zone, two related fixes):
-- guide: whiten x352-445/y412-500 (blob + narrow taper +
-  the fold line that ends in the blob), redraw strap edges
-  as a gentle taper into the existing body: left edge
-  (384,445)->(390,500), right edge (430,445)->(426,500)
-- init: whiten the zone, tonal-seed (value 120) the wider
-  top band so the strap renders uniform
-- composite back only the zone (strap body below y500,
-  collar, face bit-identical, verified)
-Base: genr152b_s42. DPM-26, LoRA 1.0, CN 1.0,
-strength 0.70. 2 seeds.
+Zipper-column pass BELOW the ring pull (the ring itself is
+good - protected above y530):
+- guide: whiten the column x205-285/y535-658 (erases the
+  wavy lines AND the arc), redraw a STRAIGHT zipper at
+  x=258 with ladder-style alternating teeth every 8px
+- init: whiten the same column so the old wavy lines
+  cannot survive img2img
+- composite back only the zone (ring pull, collar, face,
+  straps bit-identical, verified)
+Base: genr150_s42 (strap shifted). DPM-26, LoRA 0.8,
+CN 1.0, strength 0.70. 2 seeds.
 """
 import os
 import sys
@@ -25,7 +25,8 @@ import numpy as np
 import torch
 from PIL import Image
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 from trial_inpaint_eyes import _find_file, OUT  # noqa: E402
 from gen_anime_common import CX, LORA_DIR, STEPS, TRIGGER, _lineart, _load_dpm, _scale_lora  # noqa: E402
@@ -36,21 +37,21 @@ def _seeds():
                  os.environ.get("S2F_SEEDS", "7,42").split(",")
                  if x)
 
-PROMPT = (f"{TRIGGER}, backpack shoulder strap, textured "
-          "strap, parallel hatching, pencil texture, dark "
-          "strap, fabric strap, clean shoulder, pencil "
-          "sketch, monochrome, white background")
-NEG = ("blob, knot, ink blot, tapering strap, narrow "
-       "strap, scribble, color, colored, lowres, blurry, "
-       "watermark")
+PROMPT = (f"{TRIGGER}, full-length zipper, metal zipper "
+          "teeth, straight zipper, zipper teeth row, "
+          "zip-up hoodie, clean fabric, pencil sketch, "
+          "monochrome, white background")
+NEG = ("wavy lines, messy lines, scribble, drawstrings, "
+       "cord, buttons, hidden zipper, short zipper, "
+       "color, colored, lowres, blurry, watermark")
 
-ZX0, ZX1, ZY0, ZY1 = 352, 445, 412, 500
+ZX0, ZX1, ZY0, ZY1 = 205, 290, 530, 660
 
 
 def _mask(shape):
     H, W = shape
     m = np.zeros((H, W), np.uint8)
-    m[ZY0:ZY1, ZX0:ZX1] = 255
+    m[ZY0:ZY1, 212:ZX1] = 255
     return cv2.GaussianBlur(m, (0, 0), 6)
 
 
@@ -61,36 +62,26 @@ def _composite(base, result, mask):
     return np.clip(out, 0, 255).astype(np.uint8)
 
 
-def _init(base):
-    init = base.astype(np.float32).copy()
-    init[ZY0 + 4:ZY1, ZX0:ZX1] = 255
-    # tonal seed: wider top band matching the body
-    seed = np.zeros_like(init)
-    cv2.line(seed, (407, 445), (407, 500), 255, 44,
-             cv2.LINE_AA)
-    a = cv2.GaussianBlur(seed, (0, 0), 4) / 255.0
-    dark = init * (1 - a) + 120 * a
-    return np.clip(np.minimum(init, dark), 0, 255) \
-        .astype(np.uint8)
-
-
 def _guide(base):
     g = _lineart(base)
     g[ZY0 + 4:ZY1, ZX0:ZX1] = 255
-    # strap edges: gentle taper into the existing body
-    cv2.line(g, (384, 445), (390, 500), 55, 2, cv2.LINE_AA)
-    cv2.line(g, (430, 445), (426, 500), 55, 2, cv2.LINE_AA)
-    # strap top cap at the shoulder line
-    cv2.line(g, (386, 443), (428, 443), 55, 2, cv2.LINE_AA)
-    # hatching continues from the body upward
-    for y in range(452, 498, 12):
-        cv2.line(g, (392, y + 6), (424, y - 6), 110, 1,
-                 cv2.LINE_AA)
+    # straight zipper spine
+    cv2.line(g, (CX, ZY0 + 6), (CX, 656), 55, 2, cv2.LINE_AA)
+    # ladder-style alternating teeth
+    left = True
+    for y in range(ZY0 + 12, 654, 8):
+        if left:
+            cv2.line(g, (CX - 5, y), (CX, y), 90, 1,
+                     cv2.LINE_AA)
+        else:
+            cv2.line(g, (CX, y), (CX + 5, y), 90, 1,
+                     cv2.LINE_AA)
+        left = not left
     return g
 
 
 def main():
-    base = cv2.imread(os.path.join(OUT, "genr152b_s42.png"),
+    base = cv2.imread(os.path.join(OUT, "genr150_s42.png"),
                       0)
     assert base is not None
     H, W = base.shape
@@ -104,8 +95,8 @@ def main():
 
     pipe = _load_dpm(None, ckpt,
                      "lllyasviel/control_v11p_sd15_lineart")
-    _scale_lora(pipe.unet, 1.0)
-    pipe.set_ip_adapter_scale(0.85)
+    _scale_lora(pipe.unet, 0.8)
+    pipe.set_ip_adapter_scale(0.8)
     with torch.no_grad():
         emb, unc = pipe.encode_image(refs, "cpu", 1,
                                      output_hidden_states=True)
@@ -113,19 +104,19 @@ def main():
                         dim=0)
 
     mask = _mask((H, W))
-    init = _init(base)
     guide = _guide(base)
-    cv2.imwrite(os.path.join(OUT, "_r153_guide.png"), guide)
+    init = base.copy()
+    init[ZY0 + 4:ZY1, ZX0:ZX1] = 255
+    cv2.imwrite(os.path.join(OUT, "_r151_guide.png"), guide)
 
-    def _blob(im):
-        return int((im[423:441, 360:382] < 150).sum())
+    def _stats(im):
+        zip_dark = int((im[545:655, 248:268] < 150).sum())
+        arc_dark = int((im[555:650, 208:248] < 150).sum())
+        return zip_dark, arc_dark
 
-    def _span(im, y):
-        xs = [x for x in range(350, 450) if im[y, x] < 170]
-        return (min(xs), max(xs)) if xs else None
-
-    print(f"[r153] blob before={_blob(base)} "
-          f"span470={_span(base, 470)}", flush=True)
+    z0, a0 = _stats(base)
+    print(f"[r151] before: zip_col_dark={z0} arc_dark={a0}",
+          flush=True)
     for seed in _seeds():
         t0 = time.time()
         res = pipe(prompt=PROMPT, negative_prompt=NEG,
@@ -144,22 +135,20 @@ def main():
         g = cv2.cvtColor(np.asarray(res), cv2.COLOR_RGB2GRAY)
         g = cv2.resize(g, (W, H), interpolation=cv2.INTER_CUBIC)
         final = _composite(base, g, mask)
-        name = f"genr153_s{seed}.png"
+        name = f"genr151_s{seed}.png"
         cv2.imwrite(os.path.join(OUT, name), final)
         unchanged = (final[mask == 0] == base[mask == 0]).mean()
-        print(f"[r153 {name}] {time.time() - t0:.0f}s "
+        z, a = _stats(final)
+        print(f"[r151 {name}] {time.time() - t0:.0f}s "
               f"unchanged_outside={unchanged:.3f} "
-              f"blob={_blob(final)} "
-              f"span460={_span(final, 460)} "
-              f"span470={_span(final, 470)} "
-              f"span520={_span(final, 520)}", flush=True)
+              f"zip_dark={z} arc_dark={a}", flush=True)
 
     panels = [("base", base)]
     for seed in _seeds():
-        im = cv2.imread(os.path.join(OUT, f"genr153_s{seed}.png"), 0)
+        im = cv2.imread(os.path.join(OUT, f"genr151_s{seed}.png"), 0)
         panels.append((f"s{seed}", im))
     n = len(panels)
-    cz = [cv2.resize(im[400:540, 330:460], None, fx=3.0, fy=3.0,
+    cz = [cv2.resize(im[480:660, 190:310], None, fx=3.0, fy=3.0,
                      interpolation=cv2.INTER_CUBIC)
           for _, im in panels]
     ch, cw = cz[0].shape
@@ -171,8 +160,8 @@ def main():
                     0.6, 0, 2, cv2.LINE_AA)
         sheet[:, x:x + cw] = t
         x += cw + 8
-    cv2.imwrite(os.path.join(OUT, "_genr153_rtop.png"), sheet)
-    print("[r153] sheets saved", flush=True)
+    cv2.imwrite(os.path.join(OUT, "_genr151_zipper.png"), sheet)
+    print("[r151] sheets saved", flush=True)
 
 
 if __name__ == "__main__":

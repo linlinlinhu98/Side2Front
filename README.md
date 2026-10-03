@@ -142,8 +142,9 @@ Side2Front/
 ├── src/
 │   ├── core/                  # 各 frontalizer（anime / real / gan / animal）
 │   └── gui/                   # PySide6 主窗口、图像查看、控制面板
-├── tools/                     # 离线工具（32 个）：13 段生成链、公共库 gen_anime_common、
-│                              #   真人/动漫/动物生图管线、一键重放、质检修复、GUI 测试
+├── tools/                     # 离线工具（16 个）+ tools/stages/（13 段生成链）
+│                              #   公共库 gen_anime_common、真人/动漫/动物生图管线、
+│                              #   一键重放、质检修复、GUI 测试
 ├── result/final_frontal.png   # face.png 的定稿正面图（GUI 直接引用）
 ├── assets/                    # LoRA、参考锚图、参考注册辅助数据
 ├── 4/                         # 测试图（face.png / cat.jpg / people.jpg）

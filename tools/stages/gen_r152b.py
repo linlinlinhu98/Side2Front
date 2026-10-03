@@ -1,20 +1,18 @@
-"""R151 (user review fix #3: the zipper below the ring pull
-(y>530) degenerates into wavy wandering double lines, and a
-stray arc sweeps down-left from below the ring to the lower
-chest; the original's zipper teeth are regular and run the
-full length):
+"""R152B (R152 failed - block whitening ate the strap top
+and turned the shoulder to mush; switch to the R149-proven
+THIN-LINE removal: mask only the messy lines' own dark
+pixels, never touch the strap column x375-420):
 
-Zipper-column pass BELOW the ring pull (the ring itself is
-good - protected above y530):
-- guide: whiten the column x205-285/y535-658 (erases the
-  wavy lines AND the arc), redraw a STRAIGHT zipper at
-  x=258 with ladder-style alternating teeth every 8px
-- init: whiten the same column so the old wavy lines
-  cannot survive img2img
-- composite back only the zone (ring pull, collar, face,
-  straps bit-identical, verified)
-Base: genr150_s42 (strap shifted). DPM-26, LoRA 0.8,
-CN 1.0, strength 0.70. 2 seeds.
+Two thin-line masks in one pass:
+- zone A (shoulder-cap arc cluster): dark px (<150) in
+  x420-498/y415-490, dilated+feathered; guide whitens them
+  and draws ONE clean shoulder line (420,448)->(490,472)
+- zone B (collar-edge knot): dark px in x328-354/y418-444;
+  removed, the collar line bridges the gap from context
+- init whitens the same pixels; composite back only the
+  thin mask (strap body + texture bit-identical, verified)
+Base: genr151_s42. DPM-26, LoRA 0.8, CN 1.0,
+strength 0.70. 2 seeds.
 """
 import os
 import sys
@@ -25,7 +23,8 @@ import numpy as np
 import torch
 from PIL import Image
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 from trial_inpaint_eyes import _find_file, OUT  # noqa: E402
 from gen_anime_common import CX, LORA_DIR, STEPS, TRIGGER, _lineart, _load_dpm, _scale_lora  # noqa: E402
@@ -36,22 +35,25 @@ def _seeds():
                  os.environ.get("S2F_SEEDS", "7,42").split(",")
                  if x)
 
-PROMPT = (f"{TRIGGER}, full-length zipper, metal zipper "
-          "teeth, straight zipper, zipper teeth row, "
-          "zip-up hoodie, clean fabric, pencil sketch, "
+PROMPT = (f"{TRIGGER}, clean shoulder seam, smooth "
+          "shoulder line, hoodie fabric, pencil sketch, "
           "monochrome, white background")
-NEG = ("wavy lines, messy lines, scribble, drawstrings, "
-       "cord, buttons, hidden zipper, short zipper, "
-       "color, colored, lowres, blurry, watermark")
+NEG = ("messy lines, scratchy, doubled lines, scribble, "
+       "extra lines, tangled, knot, color, colored, "
+       "lowres, blurry, watermark")
 
-ZX0, ZX1, ZY0, ZY1 = 205, 290, 530, 660
+Z_A = (420, 498, 415, 490)   # arc cluster (right of strap)
+Z_B = (328, 354, 418, 444)   # collar knot
 
 
-def _mask(shape):
-    H, W = shape
-    m = np.zeros((H, W), np.uint8)
-    m[ZY0:ZY1, 212:ZX1] = 255
-    return cv2.GaussianBlur(m, (0, 0), 6)
+def _thin_mask(base):
+    m = np.zeros(base.shape, np.uint8)
+    for x0, x1, y0, y1 in (Z_A, Z_B):
+        z = base[y0:y1, x0:x1]
+        core = (z < 150).astype(np.uint8) * 255
+        core = cv2.dilate(core, np.ones((7, 7), np.uint8))
+        m[y0:y1, x0:x1] = np.maximum(m[y0:y1, x0:x1], core)
+    return cv2.GaussianBlur(m, (0, 0), 5)
 
 
 def _composite(base, result, mask):
@@ -61,26 +63,8 @@ def _composite(base, result, mask):
     return np.clip(out, 0, 255).astype(np.uint8)
 
 
-def _guide(base):
-    g = _lineart(base)
-    g[ZY0 + 4:ZY1, ZX0:ZX1] = 255
-    # straight zipper spine
-    cv2.line(g, (CX, ZY0 + 6), (CX, 656), 55, 2, cv2.LINE_AA)
-    # ladder-style alternating teeth
-    left = True
-    for y in range(ZY0 + 12, 654, 8):
-        if left:
-            cv2.line(g, (CX - 5, y), (CX, y), 90, 1,
-                     cv2.LINE_AA)
-        else:
-            cv2.line(g, (CX, y), (CX + 5, y), 90, 1,
-                     cv2.LINE_AA)
-        left = not left
-    return g
-
-
 def main():
-    base = cv2.imread(os.path.join(OUT, "genr150_s42.png"),
+    base = cv2.imread(os.path.join(OUT, "genr151_s42.png"),
                       0)
     assert base is not None
     H, W = base.shape
@@ -102,20 +86,23 @@ def main():
         emb = torch.cat([unc.unsqueeze(0), emb.unsqueeze(0)],
                         dim=0)
 
-    mask = _mask((H, W))
-    guide = _guide(base)
+    mask = _thin_mask(base)
+    guide = _lineart(base)
+    guide[mask > 60] = 255
+    # one clean shoulder line right of the strap
+    cv2.line(guide, (420, 448), (490, 472), 55, 2,
+             cv2.LINE_AA)
     init = base.copy()
-    init[ZY0 + 4:ZY1, ZX0:ZX1] = 255
-    cv2.imwrite(os.path.join(OUT, "_r151_guide.png"), guide)
+    init[mask > 120] = 255
+    cv2.imwrite(os.path.join(OUT, "_r152b_guide.png"), guide)
+    cv2.imwrite(os.path.join(OUT, "_r152b_mask.png"), mask)
 
-    def _stats(im):
-        zip_dark = int((im[545:655, 248:268] < 150).sum())
-        arc_dark = int((im[555:650, 208:248] < 150).sum())
-        return zip_dark, arc_dark
+    def _dark(im, x0, x1, y0, y1):
+        return int((im[y0:y1, x0:x1] < 150).sum())
 
-    z0, a0 = _stats(base)
-    print(f"[r151] before: zip_col_dark={z0} arc_dark={a0}",
-          flush=True)
+    print(f"[r152b] before: arc={_dark(base, 420, 498, 415, 490)} "
+          f"knot={_dark(base, 328, 354, 418, 444)} "
+          f"strap={_dark(base, 380, 415, 455, 510)}", flush=True)
     for seed in _seeds():
         t0 = time.time()
         res = pipe(prompt=PROMPT, negative_prompt=NEG,
@@ -134,20 +121,22 @@ def main():
         g = cv2.cvtColor(np.asarray(res), cv2.COLOR_RGB2GRAY)
         g = cv2.resize(g, (W, H), interpolation=cv2.INTER_CUBIC)
         final = _composite(base, g, mask)
-        name = f"genr151_s{seed}.png"
+        name = f"genr152b_s{seed}.png"
         cv2.imwrite(os.path.join(OUT, name), final)
         unchanged = (final[mask == 0] == base[mask == 0]).mean()
-        z, a = _stats(final)
-        print(f"[r151 {name}] {time.time() - t0:.0f}s "
+        print(f"[r152b {name}] {time.time() - t0:.0f}s "
               f"unchanged_outside={unchanged:.3f} "
-              f"zip_dark={z} arc_dark={a}", flush=True)
+              f"arc={_dark(final, 420, 498, 415, 490)} "
+              f"knot={_dark(final, 328, 354, 418, 444)} "
+              f"strap={_dark(final, 380, 415, 455, 510)}",
+              flush=True)
 
     panels = [("base", base)]
     for seed in _seeds():
-        im = cv2.imread(os.path.join(OUT, f"genr151_s{seed}.png"), 0)
+        im = cv2.imread(os.path.join(OUT, f"genr152b_s{seed}.png"), 0)
         panels.append((f"s{seed}", im))
     n = len(panels)
-    cz = [cv2.resize(im[480:660, 190:310], None, fx=3.0, fy=3.0,
+    cz = [cv2.resize(im[390:515, 280:510], None, fx=2.4, fy=2.4,
                      interpolation=cv2.INTER_CUBIC)
           for _, im in panels]
     ch, cw = cz[0].shape
@@ -159,8 +148,8 @@ def main():
                     0.6, 0, 2, cv2.LINE_AA)
         sheet[:, x:x + cw] = t
         x += cw + 8
-    cv2.imwrite(os.path.join(OUT, "_genr151_zipper.png"), sheet)
-    print("[r151] sheets saved", flush=True)
+    cv2.imwrite(os.path.join(OUT, "_genr152b_collar.png"), sheet)
+    print("[r152b] sheets saved", flush=True)
 
 
 if __name__ == "__main__":
