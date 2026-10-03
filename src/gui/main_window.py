@@ -5,7 +5,8 @@ from PySide6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QFileDialog, QMessageBox,
     QSplitter, QLabel, QVBoxLayout, QScrollArea, QApplication
 )
-from PySide6.QtCore import Qt, Signal, QTimer, QObject, QRunnable, QThreadPool
+from PySide6.QtCore import (Qt, Signal, QTimer, QObject, QRunnable,
+                            QThreadPool, QProcess)
 from PySide6.QtGui import QPixmap, QAction
 
 from .image_viewer import ImageViewer
@@ -62,6 +63,17 @@ class MainWindow(QMainWindow):
         self._original_filename = ""
         self._curated_kps = None  # hand-annotated keypoints for known files
         self._reference = None  # (ref_image, ref_kps, offset) or None
+        self._original_path = ""   # full path of the loaded image file
+        self._kind_info = ""       # classifier info string (含"动物"判定)
+        self._gen_proc = None      # QProcess running an SD offline pipeline
+        self._gen_out = None       # expected output image path
+        self._gen_md5 = None       # md5 of the source image (for registry)
+        self._gen_kind = "generate"  # generate / batch / fix / refine
+        self._batch_round = 0      # 换一批轮次 (种子组循环)
+        self._versions = []        # 版本历史 (当前图的逐次结果)
+        self._ver_idx = -1
+        self._BATCH_SEEDS = [[7, 42, 123], [201, 202, 203],
+                             [301, 302, 303], [401, 402, 403]]
 
         self._anime_frontalizer = AnimeFaceFrontalizer()
         if REAL_MODE_AVAILABLE:
@@ -125,7 +137,7 @@ class MainWindow(QMainWindow):
         self._orig_viewer = ImageViewer("原图像", annotate_mode=False)
         splitter.addWidget(self._orig_viewer)
 
-        self._result_viewer = ImageViewer("转换结果", annotate_mode=False)
+        self._result_viewer = ImageViewer("", annotate_mode=False)
         splitter.addWidget(self._result_viewer)
 
         self._control_panel = ControlPanel()
@@ -148,6 +160,13 @@ class MainWindow(QMainWindow):
         self._control_panel.load_clicked.connect(self._on_load)
         self._control_panel.convert_clicked.connect(self._on_convert)
         self._control_panel.export_clicked.connect(self._on_export)
+        self._control_panel.generate_sd_clicked.connect(self._on_generate_sd)
+        self._control_panel.change_batch_clicked.connect(self._on_change_batch)
+        self._control_panel.fix_clicked.connect(self._on_fix_region)
+        self._control_panel.register_final_clicked.connect(
+            self._on_register_final)
+        self._control_panel.prev_version_clicked.connect(self._on_prev_ver)
+        self._control_panel.next_version_clicked.connect(self._on_next_ver)
         self._control_panel.params_changed.connect(self._on_params_changed)
         self._control_panel.annotate_clicked.connect(self._on_annotate_toggle)
         self._control_panel.auto_annotate_clicked.connect(self._on_auto_annotate)
@@ -230,10 +249,15 @@ class MainWindow(QMainWindow):
         if kps:
             return ("anime", kps, f"动漫人脸 — 关键点TPS管线 | {info}")
         from ..core.keypoint_transfer import transfer_with_reference
-        kps2, info2 = transfer_with_reference(img)
+        try:
+            kps2, info2 = transfer_with_reference(img)
+        except Exception as e2:
+            kps2, info2 = None, f"语义迁移异常: {e2}"
         if kps2:
             return ("anime", kps2, f"动物/非人面部（如猫脸） — 语义迁移 | {info2}")
-        return ("manual", None, f"未能自动识别，请手动标注关键点（{info}；{info2}）")
+        # 迁移失败也归动物兜底 (物种中性提示词, IP-Adapter 携带身份;
+        # 真人/动漫已被前面的分支接住, 到这里的非人图只能走生成兜底)
+        return ("anime", None, "动物/非人面部 — 语义迁移不可用, 将走生成兜底")
 
     def _on_load(self):
         file_path, _ = QFileDialog.getOpenFileName(
@@ -246,11 +270,40 @@ class MainWindow(QMainWindow):
 
         import os
         self._original_filename = os.path.basename(file_path)
+        self._original_path = file_path
+        self._gen_out = None
+        self._kind_info = ""          # 清空上一张图的分类结果 (竞态根治:
+        # 检测完成前 ④⑥⑦ 全部禁用, 否则旧分类会把新图分错通道)
+        self._versions = []
+        self._ver_idx = -1
+        self._control_panel.set_gen_sd_enabled(False)
+        self._control_panel.set_batch_enabled(False)
+        self._control_panel.set_fix_enabled(False)
+        self._control_panel.set_register_enabled(False)
+        self._control_panel.set_batch_enabled(False)
+        self._control_panel.set_fix_enabled(False)
+        self._control_panel.set_version_nav(False, False, "无")
 
         with open(file_path, "rb") as f:
             file_bytes = f.read()
         self._curated_kps = self._load_curated_keypoints(file_bytes)
         self._reference = self._load_reference(file_bytes)
+        # 注册条目的物种标记: 动物图走动物生成通道 (cat 条目专用)
+        self._ref_kind = ""
+        try:
+            import hashlib as _h
+            import json as _json
+            _e = None
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                   "..", "..", "manual_keypoints.json"),
+                      "r", encoding="utf-8") as f:
+                _tbl = _json.load(f)
+            _e = _tbl.get("references", {}).get(
+                _h.md5(file_bytes).hexdigest())
+            if _e:
+                self._ref_kind = _e.get("_kind", "")
+        except Exception:
+            pass
 
         img = cv2.imdecode(np.frombuffer(file_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
         if img is None:
@@ -284,6 +337,8 @@ class MainWindow(QMainWindow):
                                 f"图像类型识别失败: {result['error']}")
             return
         kind, kps, info = result
+        self._kind_info = info
+        self._control_panel.set_gen_sd_enabled(True)  # ④ SD 生成对任何图可用
         # 'real' → 3DMM pipeline; everything else uses the keypoint
         # pipeline (anime faces and transferred animals share it).
         self._mode = "real" if kind == "real" else "anime"
@@ -319,7 +374,18 @@ class MainWindow(QMainWindow):
         if self._convert_running:
             self._convert_pending = kind
             return
-        if kind == "real":
+        ref = self._reference
+        if ref is not None and ref[3]:
+            # "final" 定稿参考(离线 SD 管线批准的成品): 任何类型都直接
+            # 显示。真人照片会先被 FaceBoxes 分去 3DMM 运行时旧管线
+            # (网格级质量), 必须在这里拦截——people.jpg 注册时发现的盲区
+            pregen = ref[0]
+
+            def work():
+                return FrontalizationResult(
+                    pregen.copy(), 0.0,
+                    "预生成正面图 — 离线SD流水线定稿（直接输出）")
+        elif kind == "real":
             if self._real_frontalizer is None:
                 self._mirror_fallback()
                 return
@@ -337,29 +403,18 @@ class MainWindow(QMainWindow):
             params = self._control_panel.get_params("anime")
             image = self._original_image
             frontalizer = self._anime_frontalizer
+            # final 定稿已在函数顶部统一拦截, 这里只剩 donor 参考
             ref = self._reference
 
-            if ref is not None and ref[3]:
-                # "final" reference: the offline SD pipeline's approved
-                # result for this exact image — show it directly
-                # (0 classical work; re-deriving it via TPS would only
-                # degrade it).
-                pregen = ref[0]
-
-                def work():
-                    return FrontalizationResult(
-                        pregen.copy(), 0.0,
-                        "预生成正面图 — 离线SD流水线定稿（直接输出）")
-            else:
-                def work():
-                    frontalizer.update_params(**params)
-                    extra = {}
-                    if ref is not None:
-                        extra = {"reference": ref[0],
-                                 "reference_kps": ref[1],
-                                 "reference_offset": ref[2]}
-                    return frontalizer.convert(image, keypoints=kps,
-                                               **params, **extra)
+            def work():
+                frontalizer.update_params(**params)
+                extra = {}
+                if ref is not None:
+                    extra = {"reference": ref[0],
+                             "reference_kps": ref[1],
+                             "reference_offset": ref[2]}
+                return frontalizer.convert(image, keypoints=kps,
+                                           **params, **extra)
 
         self._convert_running = True
         task = _Task(work)
@@ -380,6 +435,279 @@ class MainWindow(QMainWindow):
             nxt = self._convert_pending
             self._convert_pending = None
             self._schedule_convert(nxt)
+
+    # ---------- SD 直接生成 + 交互闭环 (生成/换一批/部位重修/版本) ----------
+    _SEED_GROUPS = [[7, 42, 123], [201, 202, 203], [301, 302, 303],
+                    [401, 402, 403]]
+
+    def _on_generate_sd(self):
+        self._batch_round = 0
+        self._run_generation("generate")
+
+    def _on_change_batch(self):
+        if self._original_image is None or self._gen_proc is not None:
+            return
+        self._batch_round = getattr(self, "_batch_round", 0) + 1
+        self._run_generation("batch")
+
+    def _run_generation(self, kind):
+        if self._original_image is None or self._gen_proc is not None:
+            return
+        import hashlib
+        import os
+        import sys as _sys
+        md5 = hashlib.md5(open(self._original_path, "rb").read()).hexdigest()
+        outdir = os.path.join("result", "_gen")
+        os.makedirs(outdir, exist_ok=True)
+        suffix = "" if kind == "generate" else f"_r{self._batch_round}"
+        if self._mode == "real":
+            out = os.path.join(outdir, md5 + suffix + ".png")
+            group = self._SEED_GROUPS[self._batch_round
+                                      % len(self._SEED_GROUPS)]
+            args = [os.path.join("tools", "gen_rnr.py"),
+                    self._original_path, "--strength", "0.55",
+                    "--seeds", ",".join(map(str, group)), "--out", out]
+            est = "~12 分钟 (3 种子择优)"
+        elif "动物" in (self._kind_info or "")                 or getattr(self, "_ref_kind", "") == "animal":
+            out = os.path.join(outdir, "cand_0.png")
+            # 物种中性提示词: 物种身份由 IP-Adapter 图像嵌入携带, 无需问
+            args = [os.path.join("tools", "gen_frontal_refs.py"),
+                    "animal", "1", self._original_path, outdir]
+            est = "~3 分钟"
+        else:
+            out = os.path.join(outdir, "frontal_s42.png")
+            args = [os.path.join("tools", "gen_frontal_ref.py"),
+                    self._original_path, "--auto", "--seeds", "42",
+                    "--out-dir", outdir]
+            est = "~5 分钟"
+        self._gen_out = out
+        self._gen_md5 = md5
+        self._gen_kind = kind
+        proc = QProcess(self)
+        proc.setProcessChannelMode(QProcess.MergedChannels)
+        proc.readyReadStandardOutput.connect(self._on_gen_log)
+        proc.finished.connect(self._on_gen_done)
+        self._gen_proc = proc
+        self._control_panel.set_gen_sd_enabled(False)
+        self._control_panel.set_batch_enabled(False)
+        self._control_panel.set_fix_enabled(False)
+        self._control_panel.set_register_enabled(False)
+        self.statusBar().showMessage(
+            f"SD 生成中 ({est}, 后台子进程, 界面不卡)…")
+        os.makedirs(os.path.join("result", "_gen"), exist_ok=True)
+        with open(os.path.join("result", "_gen", "last_run.log"),
+                  "w", encoding="utf-8") as f:
+            f.write(f"=== run {kind} img={self._original_path} "
+                    f"{time.strftime('%m-%d %H:%M')} ===")
+        proc.start(_sys.executable, args)
+
+    def _on_change_batch(self):
+        if self._original_image is None or self._gen_proc is not None:
+            return
+        self._run_generation("batch")
+
+    def _on_gen_log(self):
+        import os
+        data = self._gen_proc.readAllStandardOutput().data()
+        text = bytes(data).decode("gbk", errors="replace")
+        lines = text.strip().splitlines()
+        if lines:
+            self.statusBar().showMessage("SD 生成中… " + lines[-1][:80])
+        try:
+            os.makedirs(os.path.join("result", "_gen"), exist_ok=True)
+            with open(os.path.join("result", "_gen", "last_run.log"),
+                      "a", encoding="utf-8", errors="replace") as f:
+                f.write(text)
+        except Exception:
+            pass
+
+    def _on_gen_done(self, code, _status):
+        self._gen_proc = None
+        self._control_panel.set_gen_sd_enabled(True)
+        self._control_panel.set_batch_enabled(True)
+        self._control_panel.set_fix_enabled(True)
+        import os
+        if code == 0 and self._gen_out and os.path.exists(self._gen_out):
+            kind = getattr(self, "_gen_kind", "generate")
+            # 真人首次生成/换一批: 自动接质检-修复循环 (教训编译件)
+            if self._mode == "real" and kind in ("generate", "batch") \
+                    and not self._gen_out.endswith("_refined.png"):
+                self._start_auto_refine(self._gen_out)
+                return
+            img = cv2.imread(self._gen_out)
+            if img is not None:
+                self._push_version(self._gen_out)
+                self._result_image = img
+                self._result_viewer.set_result_image(
+                    img, "SD 生成（⑤ 注册 / 部位重修 / 版本翻页）")
+                self._control_panel.set_export_enabled(True)
+                self._control_panel.set_register_enabled(True)
+                self.statusBar().showMessage("完成: " + self._gen_out)
+                return
+        hint = ("疑似内存不足：请暂停其他大内存程序（如训练任务）后重试"
+                if code not in (0, 2) else
+                r"详见 result\_gen\last_run.log")
+        QMessageBox.warning(self, "生成失败",
+                            f"子进程退出码 {code}，未见输出图。{hint}")
+
+    # ---------- 版本历史 (每次生成/修复存一版, 前后翻页) ----------
+    def _push_version(self, path):
+        import os
+        import shutil
+        md5 = getattr(self, "_gen_md5", "img")
+        vdir = os.path.join("result", "history", md5)
+        os.makedirs(vdir, exist_ok=True)
+        self._versions = self._versions[:self._ver_idx + 1]
+        vpath = os.path.join(vdir, f"v{len(self._versions) + 1:02d}.png")
+        shutil.copy(path, vpath)
+        self._versions.append(vpath)
+        self._ver_idx = len(self._versions) - 1
+        self._update_ver_nav()
+        self._control_panel.set_batch_enabled(True)
+        self._control_panel.set_fix_enabled(True)
+
+    def _update_ver_nav(self):
+        n = len(self._versions)
+        self._control_panel.set_version_nav(
+            self._ver_idx > 0, self._ver_idx < n - 1,
+            f"{self._ver_idx + 1}/{n}")
+
+    def _show_version(self, idx):
+        if not 0 <= idx < len(self._versions):
+            return
+        self._ver_idx = idx
+        img = cv2.imread(self._versions[idx])
+        if img is not None:
+            self._result_image = img
+            self._result_viewer.set_result_image(
+                img, f"版本 {idx + 1}/{len(self._versions)}"
+                     "（⑤ 注册当前显示的版本）")
+        self._update_ver_nav()
+
+    def _on_prev_ver(self):
+        self._show_version(self._ver_idx - 1)
+
+    def _on_next_ver(self):
+        self._show_version(self._ver_idx + 1)
+
+    # ---------- 部位重修 (鼻/嘴/牙/下颌, 各自已验证配方) ----------
+    def _on_fix_region(self, region):
+        import os as _os
+        import sys as _sys
+        if self._original_image is None or self._gen_proc is not None:
+            return
+        if not (self._versions and 0 <= self._ver_idx < len(self._versions)):
+            return
+        cur = self._versions[self._ver_idx]
+        out = _os.path.splitext(cur)[0] + f"_{region}.png"
+        self._gen_out = out
+        self._gen_kind = "fix"
+        proc = QProcess(self)
+        proc.setProcessChannelMode(QProcess.MergedChannels)
+        proc.readyReadStandardOutput.connect(self._on_gen_log)
+        proc.finished.connect(self._on_gen_done)
+        self._gen_proc = proc
+        self._control_panel.set_fix_enabled(False)
+        self._control_panel.set_batch_enabled(False)
+        self.statusBar().showMessage(f"部位重修中 ({region})…")
+        proc.start(_sys.executable,
+                   [os.path.join("tools", "region_fix.py"), region, cur,
+                    out, self._original_path])
+
+    def _start_auto_refine(self, img_path):
+        """真人生成后自动接质检-修复循环 (auto_refine.py, 后台)"""
+        import sys as _sys
+        self._gen_kind = "refine"
+        self._gen_out = os.path.splitext(img_path)[0] + "_refined.png"
+        proc = QProcess(self)
+        proc.setProcessChannelMode(QProcess.MergedChannels)
+        proc.readyReadStandardOutput.connect(self._on_gen_log)
+        proc.finished.connect(self._on_gen_done)
+        self._gen_proc = proc
+        self._control_panel.set_gen_sd_enabled(False)
+        self._control_panel.set_register_enabled(False)
+        self.statusBar().showMessage("自动质检-修复中 (QC检测→缺陷修复→复检)…")
+        proc.start(_sys.executable, ["tools/auto_refine.py", img_path,
+                                     self._original_path])
+
+    def _on_register_final(self):
+        import json
+        import os
+        # 注册"当前显示的版本"(版本翻页后注册的就是那一版)
+        cur = None
+        if self._versions and 0 <= self._ver_idx < len(self._versions):
+            cur = self._versions[self._ver_idx]
+        elif self._gen_out and os.path.exists(self._gen_out):
+            cur = self._gen_out
+        if not cur:
+            QMessageBox.warning(self, "注册失败", "没有可注册的结果图")
+            return
+        self._gen_out = cur
+        if self._mode == "real":
+            lm = self._real_landmarks(self._original_image)
+            if lm is None:
+                QMessageBox.warning(self, "注册失败", "TDDFA 未检出人脸")
+                return
+            kps = self._map68_to_16(lm)
+        else:
+            kps = {k: [float(v[0]), float(v[1])] for k, v in
+                   self._orig_viewer.get_keypoints().items()}
+            if len(kps) < 6:
+                QMessageBox.warning(self, "注册失败", "关键点不足")
+                return
+        ref = self._gen_out.replace(os.sep, "/")
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "..", "..", "manual_keypoints.json")
+        with open(path, "r", encoding="utf-8") as f:
+            table = json.load(f)
+        table.setdefault("references", {})[self._gen_md5] = {
+            "_comment": f"{self._original_filename} GUI SD 生成定稿",
+            "final": True, "ref": ref, "offset": [0.0, 0.0],
+            "keypoints": kps}
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(table, f, ensure_ascii=False, indent=2)
+        kps_t = {k: tuple(v) for k, v in kps.items()}
+        self._reference = (cv2.imread(ref), kps_t, (0.0, 0.0), True)
+        self._control_panel.set_register_enabled(False)
+        QMessageBox.information(self, "已注册",
+                                "定稿已注册：下次加载本图 0ms 直出")
+
+    def _real_landmarks(self, img):
+        f = self._real_frontalizer
+        if f is None or getattr(f, "_tddfa", None) is None:
+            return None
+        boxes = f._detect_face(img)
+        if not boxes:
+            return None
+        box = max(boxes, key=lambda b: (b[2] - b[0]) * (b[3] - b[1]))
+        import torch
+        with torch.no_grad():
+            param_lst, roi_box_lst = f._tddfa(img, [box])
+        ver = f._tddfa.recon_vers(param_lst, roi_box_lst,
+                                  dense_flag=False)[0]
+        return ver.T[:, :2].astype("float32")
+
+    @staticmethod
+    def _map68_to_16(lm):
+        def P(i):
+            return [float(lm[i][0]), float(lm[i][1])]
+        brow_y = min(lm[19][1], lm[24][1])
+        nas = lm[27]
+        hy = float(nas[1] - 2.0 * (nas[1] - brow_y))
+        return {
+            "brow_left_inner": P(20), "brow_left_outer": P(23),
+            "eye_left_inner": P(42), "eye_left_outer": P(45),
+            "nose_tip": P(30),
+            "mouth_left": P(48),
+            "mouth_center": [(float(lm[48][0]) + float(lm[54][0])) / 2,
+                             (float(lm[48][1]) + float(lm[54][1])) / 2],
+            "mouth_right": P(54),
+            "chin_left": P(5), "chin_right": P(11), "chin_tip": P(8),
+            "ear_top": P(1), "ear_bottom": P(2),
+            "hairline_left": [float(lm[19][0]), hy],
+            "hairline_center": [float(nas[0]), hy],
+            "hairline_right": [float(lm[24][0]), hy],
+        }
 
     def _mirror_fallback(self):
         h, w = self._original_image.shape[:2]

@@ -14,3 +14,8 @@ huggingface_cache/
 
 # 离线调参产物（不随仓库分发）
 assets/geom/
+
+# GUI 运行时产物
+result/_gen/
+result/history/
+result/rnr/

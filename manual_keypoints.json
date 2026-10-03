@@ -215,76 +215,153 @@
       }
     },
     "a2a25ff5a77355852a1dfdfc8d0b597d": {
-      "_comment": "cat.jpg 正面参考: SD1.5+IP-Adapter cand_3, 512x512",
+      "_comment": "cat.jpg 正面参考: SD1.5+IP-Adapter cand_1 (2026-09-30 重建, 512x512)",
       "ref": "assets/ref_gen/cat/best.png",
       "offset": [
         0.0,
         0.0
       ],
       "keypoints": {
-        "brow_left_inner": [
-          322,
-          130
-        ],
-        "brow_left_outer": [
-          395,
-          118
-        ],
-        "eye_left_inner": [
-          322,
-          178
-        ],
-        "eye_left_outer": [
-          398,
-          165
-        ],
-        "nose_tip": [
-          255,
-          262
-        ],
-        "mouth_left": [
-          190,
-          296
-        ],
-        "mouth_center": [
-          253,
-          292
-        ],
-        "mouth_right": [
-          318,
-          296
-        ],
-        "chin_left": [
-          175,
-          315
-        ],
-        "chin_right": [
-          330,
-          315
-        ],
-        "chin_tip": [
-          253,
-          340
-        ],
         "ear_top": [
-          425,
-          10
+          88.0,
+          48.0
         ],
         "ear_bottom": [
-          378,
-          112
+          120.0,
+          155.0
         ],
         "hairline_left": [
-          140,
-          78
+          160.0,
+          105.0
         ],
         "hairline_center": [
-          253,
-          62
+          255.0,
+          88.0
         ],
         "hairline_right": [
-          360,
-          75
+          355.0,
+          105.0
+        ],
+        "brow_left_inner": [
+          205.0,
+          195.0
+        ],
+        "brow_left_outer": [
+          130.0,
+          195.0
+        ],
+        "eye_left_inner": [
+          200.0,
+          235.0
+        ],
+        "eye_left_outer": [
+          135.0,
+          225.0
+        ],
+        "nose_tip": [
+          240.0,
+          322.0
+        ],
+        "mouth_left": [
+          215.0,
+          352.0
+        ],
+        "mouth_center": [
+          240.0,
+          362.0
+        ],
+        "mouth_right": [
+          268.0,
+          350.0
+        ],
+        "chin_left": [
+          195.0,
+          380.0
+        ],
+        "chin_tip": [
+          240.0,
+          395.0
+        ],
+        "chin_right": [
+          290.0,
+          380.0
+        ]
+      },
+      "final": true,
+      "_kind": "animal"
+    },
+    "d267ff44a8fa4e3c3b6b06962d268852": {
+      "_comment": "people.jpg 全帧定稿(补牙+0.78唇+E鼻+对称鼻孔+融合), 2026-10-02",
+      "final": true,
+      "ref": "assets/final/people_full.png",
+      "offset": [
+        0.0,
+        0.0
+      ],
+      "keypoints": {
+        "brow_left_inner": [
+          595.6,
+          530.1
+        ],
+        "brow_left_outer": [
+          684.4,
+          509.9
+        ],
+        "eye_left_inner": [
+          663.1,
+          593.6
+        ],
+        "eye_left_outer": [
+          687.5,
+          587.9
+        ],
+        "nose_tip": [
+          737.1,
+          675.6
+        ],
+        "mouth_left": [
+          641.4,
+          801.7
+        ],
+        "mouth_center": [
+          681.9,
+          794.4
+        ],
+        "mouth_right": [
+          722.5,
+          787.1
+        ],
+        "chin_left": [
+          516.0,
+          904.4
+        ],
+        "chin_right": [
+          667.1,
+          872.3
+        ],
+        "chin_tip": [
+          699.7,
+          933.4
+        ],
+        "ear_top": [
+          375.9,
+          740.9
+        ],
+        "ear_bottom": [
+          397.3,
+          789.4
+        ],
+        "hairline_left": [
+          568.5,
+          426.7
+        ],
+        "hairline_center": [
+          668.5,
+          426.7
+        ],
+        "hairline_right": [
+          688.2,
+          426.7
         ]
       }
     }

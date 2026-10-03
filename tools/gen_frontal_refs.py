@@ -71,7 +71,10 @@ def _tune(pipe):
     return pipe
 
 
-def gen_cat(n=6, seed0=100):
+def gen_animal(n=6, seed0=100, src=None, outdir=None, species="cat"):
+    """任意动物正脸参考 (物种参数化, 2026-10-01 用户要求泛化):
+    SD1.5 + IP-Adapter 0.72, 提示词按物种模板生成。
+    species 用英文 (SD 词表: dog/rabbit/tiger/panda/fox/horse/...)"""
     from diffusers import StableDiffusionPipeline
     ckpt = _find_file(SD15, "v1-5-pruned-emaonly.safetensors")
     pipe = StableDiffusionPipeline.from_single_file(
@@ -81,18 +84,20 @@ def gen_cat(n=6, seed0=100):
                          weight_name="ip-adapter_sd15.safetensors")
     pipe.set_ip_adapter_scale(0.72)
 
-    src = cv2.imread(os.path.join(ROOT, "4", "cat.jpg"))
+    src = cv2.imread(src or os.path.join(ROOT, "4", "cat.jpg"))
     src = cv2.cvtColor(src, cv2.COLOR_BGR2RGB)
     ip_img = Image.fromarray(src).resize((512, 512))
 
-    prompt = ("front view portrait of a tabby cat looking directly at the "
+    subject = f"a {species}" if species else "the same animal"
+    prompt = (f"front view portrait of {subject} looking directly at the "
               "camera, symmetric face, both eyes visible, centered nose, "
-              "whiskers fanning out on both sides, detailed striped fur, "
-              "soft green blurred background, sharp photograph")
+              "detailed fur, soft green blurred background, "
+              "sharp photograph")
     neg = ("side view, profile, turned head, deformed, asymmetric, extra "
            "ears, extra eyes, blurry, watermark, text, cartoon, drawing")
-    outdir = os.path.join(OUT, "cat")
+    outdir = outdir or os.path.join(OUT, species)
     os.makedirs(outdir, exist_ok=True)
+    print(f"[animal] species={species} n={n}", flush=True)
     for i in range(n):
         t0 = time.time()
         g = torch.Generator().manual_seed(seed0 + i)
@@ -101,7 +106,13 @@ def gen_cat(n=6, seed0=100):
                    guidance_scale=7.0, height=512, width=512,
                    generator=g).images[0]
         img.save(os.path.join(outdir, f"cand_{i}.png"))
-        print(f"[cat {i}] {time.time()-t0:.0f}s", flush=True)
+        print(f"[{species} {i}] {time.time()-t0:.0f}s", flush=True)
+
+
+def gen_cat(n=6, seed0=100, src=None, outdir=None):
+    gen_animal(n, seed0, src, outdir, species="cat")
+
+
 
 
 def gen_face(n=6, seed0=200):
@@ -3166,8 +3177,12 @@ def gen_face28():
 if __name__ == "__main__":
     which = sys.argv[1] if len(sys.argv) > 1 else "cat"
     n = int(sys.argv[2]) if len(sys.argv) > 2 else 6
-    if which == "cat":
-        gen_cat(n)
+    if which in ("cat", "animal"):
+        # 可选 argv[3]=输入图 argv[4]=输出目录 argv[5]=物种 (GUI 用;
+        # species 缺省=None -> 物种中性提示词, 物种身份由 IP-Adapter 携带)
+        gen_animal(n, src=(sys.argv[3] if len(sys.argv) > 3 else None),
+                   outdir=(sys.argv[4] if len(sys.argv) > 4 else None),
+                   species=(sys.argv[5] if len(sys.argv) > 5 else None))
     elif which == "face2":
         gen_face2(n)
     elif which == "face3":

@@ -49,6 +49,12 @@ class ControlPanel(QWidget):
     load_clicked = Signal()
     convert_clicked = Signal()
     export_clicked = Signal()
+    generate_sd_clicked = Signal()
+    register_final_clicked = Signal()
+    change_batch_clicked = Signal()
+    fix_clicked = Signal(str)
+    prev_version_clicked = Signal()
+    next_version_clicked = Signal()
     params_changed = Signal()
     annotate_clicked = Signal(bool)
     auto_annotate_clicked = Signal()
@@ -76,14 +82,61 @@ class ControlPanel(QWidget):
         self._btn_convert.setEnabled(False)
         self._btn_export = QPushButton("③ 导出结果")
         self._btn_export.setEnabled(False)
+        self._btn_gen_sd = QPushButton("④ SD 生成正脸")
+        self._btn_gen_sd.setEnabled(False)
+        self._btn_register = QPushButton("⑤ 注册为定稿")
+        self._btn_register.setEnabled(False)
+        self._btn_batch = QPushButton("⑥ 换一批（新种子重生成）")
+        self._btn_batch.setEnabled(False)
         file_layout.addWidget(self._btn_load)
         file_layout.addWidget(self._btn_convert)
         file_layout.addWidget(self._btn_export)
+        file_layout.addWidget(self._btn_gen_sd)
+        file_layout.addWidget(self._btn_batch)
+        file_layout.addWidget(self._btn_register)
         layout.addWidget(file_group)
 
         self._btn_load.clicked.connect(self.load_clicked.emit)
         self._btn_convert.clicked.connect(self.convert_clicked.emit)
         self._btn_export.clicked.connect(self.export_clicked.emit)
+        self._btn_gen_sd.clicked.connect(self.generate_sd_clicked.emit)
+        self._btn_batch.clicked.connect(self.change_batch_clicked.emit)
+        self._btn_register.clicked.connect(self.register_final_clicked.emit)
+
+        # 部位重修行: 四个平铺按钮, 点哪个修哪个 (无嵌套)
+        fix_row = QHBoxLayout()
+        fix_row.addWidget(QLabel("部位重修:"))
+        self._btn_fix_nose = QPushButton("鼻")
+        self._btn_fix_mouth = QPushButton("嘴")
+        self._btn_fix_teeth = QPushButton("牙")
+        self._btn_fix_jaw = QPushButton("下颌")
+        for b in (self._btn_fix_nose, self._btn_fix_mouth,
+                  self._btn_fix_teeth, self._btn_fix_jaw):
+            b.setEnabled(False)
+            fix_row.addWidget(b)
+        layout.addLayout(fix_row)
+        self._btn_fix_nose.clicked.connect(
+            lambda: self.fix_clicked.emit("nose"))
+        self._btn_fix_mouth.clicked.connect(
+            lambda: self.fix_clicked.emit("mouth"))
+        self._btn_fix_teeth.clicked.connect(
+            lambda: self.fix_clicked.emit("teeth"))
+        self._btn_fix_jaw.clicked.connect(lambda: self.fix_clicked.emit("jaw"))
+
+        # 版本历史行: 前后翻页
+        ver_row = QHBoxLayout()
+        ver_row.addWidget(QLabel("版本:"))
+        self._btn_prev_ver = QPushButton("◀ 上一版")
+        self._btn_prev_ver.setEnabled(False)
+        self._ver_label = QLabel("无")
+        self._btn_next_ver = QPushButton("下一版 ▶")
+        self._btn_next_ver.setEnabled(False)
+        ver_row.addWidget(self._btn_prev_ver)
+        ver_row.addWidget(self._ver_label)
+        ver_row.addWidget(self._btn_next_ver)
+        layout.addLayout(ver_row)
+        self._btn_prev_ver.clicked.connect(self.prev_version_clicked.emit)
+        self._btn_next_ver.clicked.connect(self.next_version_clicked.emit)
 
         self._real_group = QGroupBox("旋转参数 (3DMM)")
         real_layout = QVBoxLayout(self._real_group)
@@ -256,6 +309,25 @@ class ControlPanel(QWidget):
 
     def set_export_enabled(self, enabled: bool):
         self._btn_export.setEnabled(enabled)
+
+    def set_batch_enabled(self, enabled: bool):
+        self._btn_batch.setEnabled(enabled)
+
+    def set_fix_enabled(self, enabled: bool):
+        for b in (self._btn_fix_nose, self._btn_fix_mouth,
+                  self._btn_fix_teeth, self._btn_fix_jaw):
+            b.setEnabled(enabled)
+
+    def set_version_nav(self, prev_on: bool, next_on: bool, label: str):
+        self._btn_prev_ver.setEnabled(prev_on)
+        self._btn_next_ver.setEnabled(next_on)
+        self._ver_label.setText(label)
+
+    def set_gen_sd_enabled(self, enabled: bool):
+        self._btn_gen_sd.setEnabled(enabled)
+
+    def set_register_enabled(self, enabled: bool):
+        self._btn_register.setEnabled(enabled)
 
     def get_params(self, mode: str) -> dict:
         if mode == "real":
