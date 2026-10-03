@@ -5,6 +5,7 @@
 # 每个部位 = 本会话已验证的配方, 输出为新文件 (不覆盖输入)
 import importlib.util
 import os
+_HFC = os.environ.get("HF_HOME", r"D:\huggingface_cache")  # 模型缓存根目录, 可用环境变量 HF_HOME 覆盖
 import sys
 import time
 
@@ -215,7 +216,7 @@ if FIX == "jaw":
 
 cv2.imwrite(OUT, fin)
 onnx = os.path.join(
-    ga._snapshot(r"D:\huggingface_cache", "models--FoivosPar--Arc2Face"),
+    ga._snapshot(_HFC, "models--FoivosPar--Arc2Face"),
     "arcface.onnx")
 cos = gr._embed_cosine(orig, fin, onnx)
 print(f"[fix] {FIX} 完成: {', '.join(applied) if applied else '无变化'}",

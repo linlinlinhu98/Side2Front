@@ -18,6 +18,7 @@ r"""Arc2Face 真实人脸正脸生成（用户 2026-09-27 批准下载并集成�
 """
 import argparse
 import os
+_HFC = os.environ.get("HF_HOME", r"D:\huggingface_cache")  # 模型缓存根目录, 可用环境变量 HF_HOME 覆盖
 import sys
 import time
 
@@ -145,7 +146,7 @@ def _run_with_ref(pipe, id_emb, image, lm68, out_dir, ref_scale=1.0,
     from arc2face.utils import image_align
     from diffusers import UNet2DConditionModel
 
-    a2f = _snapshot(r"D:\huggingface_cache",
+    a2f = _snapshot(_HFC,
                     "models--FoivosPar--Arc2Face")
     lora_path = os.path.join(
         a2f, "ref_adapter", "pytorch_lora_weights.safetensors")
@@ -228,7 +229,7 @@ def _attach_ip_adapter(pipe, scale=0.3):
     from transformers import (CLIPVisionConfig,  # noqa: E402
                               CLIPVisionModelWithProjection)
 
-    ip = _snapshot(r"D:\huggingface_cache", "models--h94--IP-Adapter")
+    ip = _snapshot(_HFC, "models--h94--IP-Adapter")
     enc_dir = os.path.join(ip, "models", "image_encoder")
     with open(os.path.join(enc_dir, "config.json")) as f:
         cfg = json.load(f)
@@ -300,7 +301,7 @@ def _load_pipeline(ip_scale=0.5):
     MemoryError（2026-09-28 实测）。改为 safe_open 内存映射，只抽取
     first_stage_model.* 的 VAE 切片（~335MB）；unet/text_encoder 本来
     就来自 Arc2Face 自带文件，与 SD1.5 单文件 ckpt 无关。"""
-    sys.path.insert(0, r"D:\huggingface_cache\arc2face_code")
+    sys.path.insert(0, os.path.join(_HFC, "arc2face_code"))
     import gc  # noqa: E402
     import json  # noqa: E402
 
@@ -314,7 +315,7 @@ def _load_pipeline(ip_scale=0.5):
     # CLIPTextModel 结构完全一致，直接用原生类。
     from transformers import CLIPTextConfig, CLIPTextModel  # noqa: E402
 
-    cache = r"D:\huggingface_cache"
+    cache = _HFC
     a2f = _snapshot(cache, "models--FoivosPar--Arc2Face")
     sd15 = _snapshot(cache,
                      "models--stable-diffusion-v1-5--stable-diffusion-v1-5")
@@ -414,7 +415,7 @@ def main():
     image = cv2.imread(args.input, cv2.IMREAD_COLOR)
     assert image is not None, f"读不到输入图: {args.input}"
 
-    a2f = _snapshot(r"D:\huggingface_cache",
+    a2f = _snapshot(_HFC,
                     "models--FoivosPar--Arc2Face")
     onnx_path = os.path.join(a2f, "arcface.onnx")
     os.makedirs(args.out_dir, exist_ok=True)

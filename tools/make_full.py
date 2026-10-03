@@ -4,6 +4,7 @@
 #    周围散景填补——原图背景一点不动
 import importlib.util
 import os
+_HFC = os.environ.get("HF_HOME", r"D:\huggingface_cache")  # 模型缓存根目录, 可用环境变量 HF_HOME 覆盖
 
 import cv2
 import numpy as np
@@ -198,7 +199,7 @@ cv2.imwrite("result/_full_view.png", cv2.resize(out, (720, 960)))
 cv2.imwrite("result/_full_ghost.png", ghost)
 
 onnx = os.path.join(
-    ga._snapshot(r"D:\huggingface_cache", "models--FoivosPar--Arc2Face"),
+    ga._snapshot(_HFC, "models--FoivosPar--Arc2Face"),
     "arcface.onnx")
 cos = gr._embed_cosine(orig, out, onnx)
 print(f"[sim] 全帧v2 vs 原图 arcface 余弦 = {cos:.3f} (512 版 0.476)",

@@ -13,11 +13,12 @@ Usage:
   HF_ENDPOINT=https://hf-mirror.com python tools/gen_frontal_refs.py face [n]
 """
 import os
+_HFC = os.environ.get("HF_HOME", r"D:\huggingface_cache")  # 模型缓存根目录, 可用环境变量 HF_HOME 覆盖
 import sys
 import time
 
 os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
-os.environ.setdefault("HF_HOME", r"D:\huggingface_cache")
+os.environ.setdefault("HF_HOME", _HFC)
 os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
 
 import cv2
@@ -29,9 +30,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "assets", "ref_gen")
 
 SD15 = os.path.join(
-    r"D:\huggingface_cache", "models--runwayml--stable-diffusion-v1-5")
+    _HFC, "models--runwayml--stable-diffusion-v1-5")
 ANIME = os.path.join(
-    r"D:\huggingface_cache", "models--stablediffusionapi--anything-v5")
+    _HFC, "models--stablediffusionapi--anything-v5")
 
 
 def _find_file(root, suffix):
@@ -634,7 +635,7 @@ def gen_face8():
     _tune(pipe)
     pipe.scheduler = LCMScheduler.from_config(pipe.scheduler.config)
     lcm = os.path.join(
-        r"D:\huggingface_cache",
+        _HFC,
         "models--latent-consistency--lcm-lora-sdv1-5", "snapshots")
     lcm = os.path.join(max(
         [os.path.join(lcm, d) for d in os.listdir(lcm)],
@@ -730,7 +731,7 @@ def gen_face9():
     _tune(pipe)
     pipe.scheduler = LCMScheduler.from_config(pipe.scheduler.config)
     lcm = os.path.join(
-        r"D:\huggingface_cache",
+        _HFC,
         "models--latent-consistency--lcm-lora-sdv1-5", "snapshots")
     lcm = os.path.join(max(
         [os.path.join(lcm, d) for d in os.listdir(lcm)],
@@ -897,7 +898,7 @@ def gen_face10():
     _tune(pipe)
     pipe.scheduler = LCMScheduler.from_config(pipe.scheduler.config)
     lcm = os.path.join(
-        r"D:\huggingface_cache",
+        _HFC,
         "models--latent-consistency--lcm-lora-sdv1-5", "snapshots")
     lcm = os.path.join(max(
         [os.path.join(lcm, d) for d in os.listdir(lcm)],
@@ -1053,7 +1054,7 @@ def _build_refonly_pipe(ckpt_path, single_file=False, refonly=True):
     _tune(pipe)
     pipe.scheduler = LCMScheduler.from_config(pipe.scheduler.config)
     lcm = os.path.join(
-        r"D:\huggingface_cache",
+        _HFC,
         "models--latent-consistency--lcm-lora-sdv1-5", "snapshots")
     lcm = os.path.join(max(
         [os.path.join(lcm, d) for d in os.listdir(lcm)],
@@ -2324,7 +2325,7 @@ def gen_face23():
     Output: assets/ref_gen/face23/"""
     from diffusers import ControlNetModel
     ckpt = _find_file(
-        os.path.join(r"D:\huggingface_cache",
+        os.path.join(_HFC,
                      "models--gsdf--Counterfeit-V3.0"),
         "_fp16.safetensors")
     print(f"[face23] base model: {ckpt}", flush=True)
@@ -2438,7 +2439,7 @@ def gen_face24():
     (s75,ip90), (s65,ip90). Output: assets/ref_gen/face24/"""
     from diffusers import ControlNetModel
     ckpt = _find_file(
-        os.path.join(r"D:\huggingface_cache",
+        os.path.join(_HFC,
                      "models--gsdf--Counterfeit-V3.0"),
         "_fp16.safetensors")
     pipe, _, _ = _build_refonly_pipe(ckpt, single_file=True,
@@ -2588,7 +2589,7 @@ def gen_face25():
     from diffusers import ControlNetModel
     short = _build_template_v5()
     ckpt = _find_file(
-        os.path.join(r"D:\huggingface_cache",
+        os.path.join(_HFC,
                      "models--gsdf--Counterfeit-V3.0"),
         "_fp16.safetensors")
     pipe, _, _ = _build_refonly_pipe(ckpt, single_file=True,
@@ -2846,7 +2847,7 @@ def gen_face26():
     from diffusers import ControlNetModel
     short = _build_template_v6()
     ckpt = _find_file(
-        os.path.join(r"D:\huggingface_cache",
+        os.path.join(_HFC,
                      "models--gsdf--Counterfeit-V3.0"),
         "_fp16.safetensors")
     pipe, _, _ = _build_refonly_pipe(ckpt, single_file=True,
@@ -3001,7 +3002,7 @@ def gen_face27():
     }
     BASES = {
         "cf": (_find_file(os.path.join(
-            r"D:\huggingface_cache", "models--gsdf--Counterfeit-V3.0"),
+            _HFC, "models--gsdf--Counterfeit-V3.0"),
             "_fp16.safetensors"), True),
         "sd": ("stable-diffusion-v1-5/stable-diffusion-v1-5", False),
     }
@@ -3145,7 +3146,7 @@ def gen_face28():
     BASES = {
         "any": ("stablediffusionapi/anything-v5", False),
         "sd": (_find_file(os.path.join(
-            r"D:\huggingface_cache",
+            _HFC,
             "models--runwayml--stable-diffusion-v1-5"),
             "emaonly.safetensors"), True),
     }

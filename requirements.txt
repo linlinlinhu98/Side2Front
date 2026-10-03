@@ -8,3 +8,9 @@ torch
 torchvision
 huggingface_hub
 anime-face-detector>=0.1.0
+diffusers>=0.25
+transformers
+accelerate
+safetensors
+Pillow>=10
+scikit-image

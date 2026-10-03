@@ -5,6 +5,7 @@
 # 之后: python tools/make_full.py result/_fin_final.png 完成全帧
 import importlib.util
 import os
+_HFC = os.environ.get("HF_HOME", r"D:\huggingface_cache")  # 模型缓存根目录, 可用环境变量 HF_HOME 覆盖
 import sys
 import time
 
@@ -196,7 +197,7 @@ print("[6] 鼻梁修容完成", flush=True)
 cv2.imwrite("result/_fin_final.png", fin)
 
 onnx = os.path.join(
-    ga._snapshot(r"D:\huggingface_cache", "models--FoivosPar--Arc2Face"),
+    ga._snapshot(_HFC, "models--FoivosPar--Arc2Face"),
     "arcface.onnx")
 cos = gr._embed_cosine(orig, fin, onnx)
 print(f"[sim] 512 终版 = {cos:.3f}", flush=True)

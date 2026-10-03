@@ -37,6 +37,7 @@ ControlNet lineart）做一次 img2img：以输入图自身为底、提示词
 """
 import argparse
 import os
+_HFC = os.environ.get("HF_HOME", r"D:\huggingface_cache")  # 模型缓存根目录, 可用环境变量 HF_HOME 覆盖
 import sys
 import time
 
@@ -196,7 +197,7 @@ def main():
 
     seeds = tuple(int(x) for x in args.seeds.split(",") if x)
     ckpt = _find_file(os.path.join(
-        r"D:\huggingface_cache", "models--gsdf--Counterfeit-V3.0"),
+        _HFC, "models--gsdf--Counterfeit-V3.0"),
         "_fp16.safetensors")
     pipe = _load_dpm(None, ckpt,
                      "lllyasviel/control_v11p_sd15_lineart")

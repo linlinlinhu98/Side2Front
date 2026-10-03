@@ -9,6 +9,7 @@
 # 输出: <输入名>_refined.png + QC 报告
 import importlib.util
 import os
+_HFC = os.environ.get("HF_HOME", r"D:\huggingface_cache")  # 模型缓存根目录, 可用环境变量 HF_HOME 覆盖
 import sys
 import time
 
@@ -271,7 +272,7 @@ if RAW:
 out_path = os.path.splitext(fin_path)[0] + "_refined.png"
 cv2.imwrite(out_path, fin)
 onnx = os.path.join(
-    ga._snapshot(r"D:\huggingface_cache", "models--FoivosPar--Arc2Face"),
+    ga._snapshot(_HFC, "models--FoivosPar--Arc2Face"),
     "arcface.onnx")
 cos = gr._embed_cosine(orig, fin, onnx)
 print("== QC 报告 ==", flush=True)

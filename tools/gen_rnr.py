@@ -17,6 +17,7 @@ r"""Rotate-and-Render (CVPR2020) CPU 移植推理。
 import argparse
 import importlib.util
 import os
+_HFC = os.environ.get("HF_HOME", r"D:\huggingface_cache")  # 模型缓存根目录, 可用环境变量 HF_HOME 覆盖
 import sys
 import time
 import types
@@ -26,7 +27,7 @@ import numpy as np
 import torch
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RNR = r"D:\huggingface_cache\rnr_code"
+RNR = os.path.join(_HFC, "rnr_code")
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "3ddfa_v2"))
 sys.path.insert(0, RNR)
@@ -478,8 +479,8 @@ _OUTPROMPT = ("with thick long straight black hair framing the face, "
               "pale green qipao collar, green blurred background")
 
 
-_CFDIR = r"D:\huggingface_cache\codeformer_code"
-_CFWEIGHTS = r"D:\huggingface_cache\codeformer\codeformer.pth"
+_CFDIR = os.path.join(_HFC, "codeformer_code")
+_CFWEIGHTS = os.path.join(_HFC, "codeformer", "codeformer.pth")
 
 
 def _codeformer_restore(img_bgr, w, ga):
@@ -758,7 +759,7 @@ def _refine_with_arc2face(mesh, image_bgr, out_path, strength=0.8,
     pipe = ga._load_pipeline(ip_scale=ip_scale)
     i2i = StableDiffusionImg2ImgPipeline(**pipe.components)
 
-    cache = r"D:\huggingface_cache"
+    cache = _HFC
     onnx = os.path.join(
         ga._snapshot(cache, "models--FoivosPar--Arc2Face"), "arcface.onnx")
     mesh_np = (mesh.numpy().transpose(1, 2, 0) * 255).astype(np.uint8)
