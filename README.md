@@ -31,13 +31,57 @@ git clone https://github.com/cleardusk/3DDFA_V2.git 3ddfa_v2
 cd 3ddfa_v2 && sh ./build.sh && cd ..
 ```
 
-**模型缓存**（首次运行自动下载，共约 380MB，放到 `HF_HOME` 指向的目录）：
+**GUI 运行时模型**（首次运行自动下载，共约 380MB，缓存到 `HF_HOME` 指向的目录）：
 
-| 模型 | 用途 | 大小 |
-|---|---|---|
-| `hysts/anime-face-detector`（yolov3 + hrnetv2） | 动漫人脸/关键点检测 | 273M |
-| `opetrova/face-frontalization` | 真人脸 GAN 正面化 | 22M |
-| `dinov2_vits14_pretrain` | 动物特征迁移 | 84M |
+| 模型 | 用途 | 大小 | 下载 |
+|---|---|---|---|
+| anime-face-detector yolov3 + hrnetv2 | 动漫人脸/关键点检测 | 235M + 38M | 自动（[hysts/anime-face-detector-yolov3](https://huggingface.co/hysts/anime-face-detector-yolov3) / [hrnetv2](https://huggingface.co/hysts/anime-face-detector-hrnetv2)） |
+| face-frontalization | 真人脸 GAN 正面化 | 22M | 自动（[opetrova/face-frontalization](https://huggingface.co/spaces/opetrova/face-frontalization)） |
+| DINOv2 ViT-S/14 | 动物特征迁移 | 84M | 自动（[facebookresearch/dinov2](https://github.com/facebookresearch/dinov2)，权重 [直链](https://dl.fbaipublicfiles.com/dinov2/dinov2_vits14/dinov2_vits14_pretrain.pth)） |
+
+## 离线生图层模型清单（全部模型与下载链接）
+
+GUI 本身只依赖上表；要用离线生图脚本（`tools/gen_rnr.py` 真人 /
+`tools/gen_frontal_ref.py` 动漫 / `tools/gen_frontal_refs.py` 动物、
+`tools/pipeline_final.py` 一键重放）还需以下模型。
+
+**一键下载**（HuggingFace 部分 + CodeFormer 权重，共约 12GB）：
+
+```bash
+HF_ENDPOINT=https://hf-mirror.com python tools/download_models.py
+```
+
+**需要单独 git clone 的代码仓库**（含推理代码，放进 `HF_HOME` 目录）：
+
+```bash
+git clone https://github.com/cleardusk/3DDFA_V2.git 3ddfa_v2    # 仓库根目录
+cd 3ddfa_v2 && sh ./build.sh && cd ..                            # 含 68 点权重下载
+git clone https://github.com/foivospar/Arc2Face        "$HF_HOME/arc2face_code"
+git clone https://github.com/Hangz-nju-cuhk/Rotate-and-Render "$HF_HOME/rnr_code"
+```
+
+CodeFormer 推理代码为内置的最小 vendored 版（`HF_HOME/codeformer_code/`
+下只需 `basicsr/archs/codeformer_arch.py` 与 `vqgan_arch.py`，
+取自 [sczhou/CodeFormer](https://github.com/sczhou/CodeFormer)）；权重
+`codeformer.pth` 由上面的下载脚本自动从
+[GitHub Release](https://github.com/sczhou/CodeFormer/releases/download/v0.1.0/codeformer.pth)
+获取。RnR 的 GAN 权重**不需要下载**（真人管线自动回退到 Arc2Face 路径）。
+
+**HuggingFace 模型明细**：
+
+| # | 模型 | 用途 | 大小 | 链接 | 管线 |
+|---|---|---|---|---|---|
+| 1 | SD1.5（v1-5-pruned-emaonly.safetensors） | 真人/动物生图底模 | 4.3G | https://huggingface.co/runwayml/stable-diffusion-v1-5 | 真人、动物 |
+| 2 | Counterfeit-V3.0（fp16） | 动漫生图底模 | 2.1G | https://huggingface.co/gsdf/Counterfeit-V3.0 | 动漫 |
+| 3 | Arc2Face（unet + arcface.onnx + ref_adapter） | 真人身份注入 + 相似度评分 | ~4G | https://huggingface.co/FoivosPar/Arc2Face | 真人 |
+| 4 | IP-Adapter（image_encoder + ip-adapter_sd15） | 身份/参考保持 | ~1.8G | https://huggingface.co/h94/IP-Adapter | 真人、动漫、动物 |
+| 5 | ControlNet lineart | 线稿结构控制 | 1.4G | https://huggingface.co/lllyasviel/control_v11p_sd15_lineart | 动漫 |
+| 6 | Anything-V5 | 动漫生图（脚本其他实验模式） | 2.1G | https://huggingface.co/stablediffusionapi/anything-v5 | 可选 |
+| 7 | CodeFormer codeformer.pth | 人脸修复（w=0.8） | 376M | https://github.com/sczhou/CodeFormer/releases | 真人 |
+
+另外：
+- **s2fstyle LoRA**（动漫风格）已随仓库分发：`assets/lora/s2fstyle/`，无需下载
+- 首次运行请**不要**设置 `HF_HUB_OFFLINE=1`（要联网下载）；下完后设上即可完全离线
 
 ```bash
 # Windows 示例
@@ -78,8 +122,8 @@ python tools/pipeline_final.py            # 断点续跑
 python tools/pipeline_final.py --force    # 从零重放
 ```
 
-需要约 16GB 的 SD 模型缓存（Counterfeit-V3.0、IP-Adapter Plus、
-ControlNet lineart、SD1.5 等），重放结果与归档定稿**逐像素一致**。
+需要上表"离线生图层模型清单"的全部模型（约 12GB 下载 + 代码仓库
+clone），重放结果与归档定稿**逐像素一致**。
 
 ## 项目结构
 
