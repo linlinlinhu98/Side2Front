@@ -480,6 +480,9 @@ _OUTPROMPT = ("with thick long straight black hair framing the face, "
 
 
 _CFDIR = os.path.join(_HFC, "codeformer_code")
+if not os.path.isdir(_CFDIR):
+    # 未在 HF_HOME 放置时, 回退到仓库内置的最小 vendored 版
+    _CFDIR = os.path.join(ROOT, "third_party", "codeformer_min")
 _CFWEIGHTS = os.path.join(_HFC, "codeformer", "codeformer.pth")
 
 

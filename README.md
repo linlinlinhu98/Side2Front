@@ -2,6 +2,9 @@
 
 交互式侧脸→正脸图像编辑器（PySide6 GUI，纯 CPU、运行时完全离线）。
 
+> **从整合包 / clone 开始部署？请看 [docs/SETUP.md](docs/SETUP.md) 复现指南**
+> ——含全部模型的说明与下载链接、第三方仓库 clone 与编译步骤、常见问题。
+
 采用**两层路线**：
 
 1. **离线生图层**（时间不计入运行）：用 Stable Diffusion（Counterfeit-V3.0 + IP-Adapter Plus + ControlNet lineart + 风格 LoRA，DPM++ 2M Karras 26 步）离线预生成高质量正面参考图；
