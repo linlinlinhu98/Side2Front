@@ -1,6 +1,6 @@
 """PIPELINE FINAL - one-command deterministic replay of the
 accepted chain that produces the FINAL frontal image
-(genr156_s42.png == result/final_frontal.png) from the
+(genr156_s42.png == assets/final/face_frontal.png) from the
 original side profile 4/face.png.
 
 The final image is NOT one-shot generation. It is a
@@ -115,7 +115,8 @@ def main():
               f"{time.time() - t0:.0f}s", flush=True)
 
     final = os.path.join(OUT, "genr156_s42.png")
-    archive = os.path.join(ROOT, "result", "final_frontal.png")
+    archive = os.path.join(ROOT, "assets", "final",
+                           "face_frontal.png")
     print(f"[pipeline] total {time.time() - total:.0f}s",
           flush=True)
     if os.path.exists(archive):

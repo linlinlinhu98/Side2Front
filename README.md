@@ -145,8 +145,10 @@ Side2Front/
 ├── tools/                     # 离线工具（16 个）+ tools/stages/（13 段生成链）
 │                              #   公共库 gen_anime_common、真人/动漫/动物生图管线、
 │                              #   一键重放、质检修复、GUI 测试
-├── result/final_frontal.png   # face.png 的定稿正面图（GUI 直接引用）
-├── assets/                    # LoRA、参考锚图、参考注册辅助数据
+├── result/                    # 运行时产物（不入库）：GUI 生成临时图、版本历史
+├── assets/final/              # ★ 三图定稿唯一存放点（face_frontal / cat_frontal /
+│                              #   people_full），manual_keypoints.json 注册表指向这里
+├── assets/                    # 风格 LoRA、8aa 参考锚、动物参考标注、生图实验输出目录
 ├── 4/                         # 测试图（face.png / cat.jpg / people.jpg）
 └── 3ddfa_v2/                  # 第三方，需单独 clone（真实人脸备选路径，可选）
 ```

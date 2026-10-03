@@ -48,8 +48,7 @@ NEG = ("chibi, big round shiny eyes, wide fat face, "
 
 def main():
     ref = cv2.imread(os.path.join(
-        ROOT, "result", "8aa591a6c9e652b79697d55eeee769ec.jpg"),
-        0)
+        ROOT, "assets", "reference_8aa_frontal.jpg"), 0)
     assert ref is not None
     rh, rw = ref.shape
     ref520 = cv2.resize(ref, (520, int(520 * rh / rw)),

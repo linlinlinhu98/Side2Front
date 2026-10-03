@@ -194,7 +194,7 @@ if TONE_MIX > 0 and len(ref_px) > 500 and len(face_px) > 500:
     print(f"[tone] 脸->脖领肤色对齐 mix={mix} "
           f"({len(face_px)}px, ref {len(ref_px)}px)", flush=True)
 
-cv2.imwrite("result/_full_final.png", out)
+cv2.imwrite("assets/final/people_full.png", out)
 cv2.imwrite("result/_full_view.png", cv2.resize(out, (720, 960)))
 cv2.imwrite("result/_full_ghost.png", ghost)
 

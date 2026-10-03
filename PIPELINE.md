@@ -1,6 +1,6 @@
 # Side2Front 生成流水线（最终版复现文档）
 
-> 目标：从侧脸原图 `4/face.png` 生成与 **`assets/geom/inpaint_eyes/genr156_s42.png`**（归档于 `result/final_frontal.png`）完全一样的正面图。
+> 目标：从侧脸原图 `4/face.png` 生成与 **`assets/geom/inpaint_eyes/genr156_s42.png`**（归档于 `assets/final/face_frontal.png`）完全一样的正面图。
 > 一句话回答：**不是一次生成，而是 13 段确定性流水线**——1 段基础生成 + 11 段引导微修 + 1 段像素级镜像移植，全程固定随机种子，重跑与成品逐像素一致。
 
 ## 一键复现
@@ -20,7 +20,7 @@ HF_HOME=D:\huggingface_cache HF_HUB_OFFLINE=1 /d/Python/python.exe tools/pipelin
 ```
 4/face.png (侧脸原图) ─┐
                        ├─▶ [1] gen_r119 基础生成 ─▶ genr119_s7
-result/8aa…jpg (正脸参考) ┘        │
+assets/reference_8aa_frontal.jpg ┘  │
                                    ▼
         [2..12] gen_r145→r146→r147→r148→r149→r150→r151→r152b→r153→r154→r155
         （每段：掩码区生成 + composite-back 贴回，其余区域逐像素不动）
@@ -29,7 +29,7 @@ result/8aa…jpg (正脸参考) ┘        │
                     [13] gen_r156 镜像移植（纯像素操作）
                                    │
                                    ▼
-                    genr156_s42.png = result/final_frontal.png
+                    genr156_s42.png = assets/final/face_frontal.png
 ```
 
 ## 各段说明
@@ -75,5 +75,5 @@ result/8aa…jpg (正脸参考) ┘        │
   由原 gen_r101/r102/r83/gen_cn_unify 的共享部分合并而来）
 - `tools/_similarity.py` — 相似度验收
 - `assets/geom/inpaint_eyes/` — 工作目录（最终版 + GUI 掩码）
-- `result/final_frontal.png` — 成品归档
+- `assets/final/face_frontal.png` — 成品归档（三图定稿统一在此目录）
 - `assets/lora/s2fstyle/` — peft LoRA（用原图训练）

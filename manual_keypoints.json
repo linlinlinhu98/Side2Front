@@ -140,9 +140,9 @@
   },
   "references": {
     "13ef60de932bb979aaa107ad210a327a": {
-      "_comment": "face.png 正面参考: 13段SD流水线定稿 genr156_s42 (result/final_frontal.png), CLIP复合相似度0.762",
+      "_comment": "face.png 正面参考: 13段SD流水线定稿 genr156_s42 (assets/final/face_frontal.png), CLIP复合相似度0.762",
       "final": true,
-      "ref": "result/final_frontal.png",
+      "ref": "assets/final/face_frontal.png",
       "offset": [
         0.0,
         0.0
@@ -216,7 +216,7 @@
     },
     "a2a25ff5a77355852a1dfdfc8d0b597d": {
       "_comment": "cat.jpg 正面参考: SD1.5+IP-Adapter cand_1 (2026-09-30 重建, 512x512)",
-      "ref": "assets/ref_gen/cat/best.png",
+      "ref": "assets/final/cat_frontal.png",
       "offset": [
         0.0,
         0.0

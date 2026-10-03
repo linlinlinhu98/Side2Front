@@ -26,8 +26,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 from trial_inpaint_eyes import OUT  # noqa: E402
 
-REF = os.path.join(ROOT, "result",
-                   "8aa591a6c9e652b79697d55eeee769ec.jpg")
+REF = os.path.join(ROOT, "assets", "reference_8aa_frontal.jpg")
 
 DEFAULT = [
     "genr69_s7_eye.png", "genr69_s42_eye.png",

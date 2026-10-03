@@ -19,3 +19,6 @@ assets/geom/
 result/_gen/
 result/history/
 result/rnr/
+
+# 邮件整合包（本地构建产物，不入库）
+Side2Front-src.zip
